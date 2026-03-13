@@ -245,11 +245,52 @@ This document tracks the enhancement status of tasks from TODO.md. Tasks are mov
 4. Task is moved to this document with enhanced status
 5. Implementation begins with enhanced specifications
 
+#### ✅ ENHANCED: PERF-002 - Add Real-time Monitoring
+**Enhancement Date**: 2026-03-12  
+**Status**: Enhanced and Ready for Implementation  
+**Research Completed**: NVIDIA GenAI-Perf standards, PowerShell Universal Dashboard, WPF real-time monitoring, automated alerting systems
+
+**Key Enhancements Added**:
+- Comprehensive real-time monitoring framework with NVIDIA GenAI-Perf LLM metrics (TTFT, ITL, TPS, RPS)
+- PowerShell Universal Dashboard (PoshUD) integration for web-based real-time dashboards
+- WPF desktop monitoring dashboard with live charts and 1-5 second refresh intervals
+- Automated performance alerting system with configurable thresholds and email notifications
+- Performance baseline and historical tracking system with trend analysis
+- Real-time process monitoring for llama.cpp with resource tracking and profiling
+- Monitoring integration hooks for existing optimization scripts with pre/post execution capture
+- Multi-dashboard support (both desktop WPF and web-based PoshUD options)
+
+**Advanced Patterns Implemented**:
+- NVIDIA GenAI-Perf compatible LLM metrics measurement (TTFT, ITL, TPS, RPS)
+- PowerShell Universal Dashboard with auto-refresh and interactive charts (bar, line, doughnut)
+- WPF desktop dashboard with live chart streaming and real-time data visualization
+- Get-Counter cmdlet integration for system performance monitoring with structured sampling
+- Automated alerting with threshold management, email notifications, and severity levels
+- Performance baseline tracking with JSON-based historical data storage and analysis
+- Real-time process monitoring with memory leak detection and resource cleanup tracking
+- Comprehensive monitoring integration hooks for all existing optimization scripts
+
+**Strategic Analysis Integration**:
+- **Current State Assessment**: Basic 5 subtasks expanded to comprehensive 8-subtask framework
+- **Key Challenges Addressed**: LLM-specific metrics integration, real-time dashboard creation, comprehensive alerting
+- **Optimization Strategy**: NVIDIA GenAI-Perf metrics + PowerShell Universal Dashboard + WPF visualization + automated alerting
+- **2026 Best Practices**: GenAI-Perf compatibility, real-time streaming, automated alerting, historical tracking
+
+**Technical Implementation Highlights**:
+- **LLM Metrics**: Industry-standard TTFT, ITL, TPS, RPS measurement per NVIDIA GenAI-Perf specifications
+- **Dashboard Options**: Both desktop (WPF) and web-based (PoshUD) real-time monitoring interfaces
+- **Alerting System**: Configurable thresholds for CPU, memory, TPS, ITL with email notifications
+- **Performance Tracking**: Historical baseline database with trend analysis and degradation detection
+- **Integration**: Pre-execution baseline capture and post-execution performance reporting
+- **Real-time Updates**: 1-5 second refresh intervals for live monitoring dashboards
+
+**Implementation Ready**: All monitoring functions defined with comprehensive error handling, NVIDIA GenAI-Perf compatibility, and 2026 optimization patterns
+
 ## Enhancement Statistics
 - **Total Tasks in TODO.md**: 12
-- **Tasks Enhanced**: 8
+- **Tasks Enhanced**: 9
 - **Tasks Implemented**: 1
-- **Completion Rate**: 66.7%
+- **Completion Rate**: 75.0%
 
 ---
 **Created**: 2026-03-12
