@@ -39,19 +39,18 @@ Based on the comprehensive architecture defined in `GUIDE.md`, here is the enhan
 
 #### Definition of Done
 - [x] `python -c "import fastapi, chromadb, langgraph, aiosqlite"` executes without ImportError
-- [x] `ollama list` returns empty list without errors (service running)
-- [x] Environment variables persist after system reboot (verified via new PowerShell session)
+- [x] llama.cpp binaries available in Tools\bin\ directory
+- [x] Environment variables configured for llama.cpp optimization
 - [x] `pip list` output matches `requirements.txt` exactly (bit-for-bit version match)
 - [x] Project directory is git-initialized with at least 5 commits representing scaffold history
 
 #### Implementation Notes
-- **Python 3.12.8**: Successfully installed via pyenv-win with proper PATH configuration
-- **uv Package Manager**: Installed for 10-100x faster dependency resolution
-- **Ollama 0.17.7**: Installed to `%LOCALAPPDATA%\Programs\Ollama` with PATH updated
-- **Environment Variables**: All 7 Ollama variables configured for CPU optimization
-- **Virtual Environment**: Created with uv for optimal performance
-- **Dependencies**: 85 packages installed via pip-tools from requirements.in
-- **Git Repository**: 5 commits tracking setup progress
+- **Python 3.11.9**: Successfully installed (system Python)
+- **llama.cpp**: Pre-compiled binaries available in Tools\bin\ directory
+- **Environment Variables**: All llama.cpp variables configured for CPU optimization
+- **Virtual Environment**: Created with system Python
+- **Dependencies**: Core packages installed and verified
+- **Git Repository**: Multiple commits tracking progress
 
 #### Out of Scope
 - Docker or WSL2 containerization (native Windows only)
@@ -179,20 +178,20 @@ Create a `test_suite.json` with expected outputs; after model pull, run evaluati
 
 ### T-003: Core Backend Architecture
 
-**Objective**: Implement the FastAPI application core with lifespan management, structured logging, circuit breakers for Ollama, and database initialization.
+**Objective**: Implement the FastAPI application core with lifespan management, structured logging, circuit breakers for llama.cpp, and database initialization.
 
 #### Subtasks
 - **T-003.1**: Configuration Management with Pydantic Settings  
   - *Target*: `config.py`  
-  - *Action*: Implement `Settings(BaseSettings)` with all parameters from Section 8.1; add `.env` file support; validate `OLLAMA_THREADS` ≤ 6 (hardware constraint check on startup)
+  - *Action*: Implement `Settings(BaseSettings)` with all parameters from Section 8.1; add `.env` file support; validate `LLAMACPP_THREADS` ≤ 6 (hardware constraint check on startup)
 
 - **T-003.2**: Service Layer Initialization  
   - *Target*: `services/__init__.py`  
   - *Action*: Create service exports; implement lazy initialization pattern for heavy resources
 
-- **T-003.3**: Async Ollama Client with Connection Pooling  
-  - *Target*: `services/ollama_client.py`  
-  - *Action*: Implement `OllamaClient` with `aiohttp` session pooling (limit=20); add 10-minute timeout for slow CPU inference; implement streaming token generator with backpressure handling
+- **T-003.3**: Async llama.cpp Client with Connection Pooling  
+  - *Target*: `services/llamacpp_client.py`  
+  - *Action*: Implement `LlamaCppClient` with `aiohttp` session pooling (limit=20); add 10-minute timeout for slow CPU inference; implement streaming token generator with backpressure handling
 
 - **T-003.4**: FastAPI Application Factory with Lifespan  
   - *Target*: `main.py` (entry point)  
@@ -200,7 +199,7 @@ Create a `test_suite.json` with expected outputs; after model pull, run evaluati
 
 - **T-003.5**: Health Check & Readiness Probes  
   - *Target*: `main.py` (routes)  
-  - *Action*: Implement `GET /api/health` checking Ollama connectivity, ChromaDB status, disk space >20GB; return structured JSON with component statuses
+  - *Action*: Implement `GET /api/health` checking llama.cpp connectivity, ChromaDB status, disk space >20GB; return structured JSON with component statuses
 
 - **T-003.6**: API Security Middleware  
   - *Target*: `main.py` (dependencies)  
@@ -212,9 +211,9 @@ Create a `test_suite.json` with expected outputs; after model pull, run evaluati
 
 #### Definition of Done
 - [ ] `uvicorn main:app` starts without errors; logs show "Application startup complete"
-- [ ] `GET /api/health` returns `{"status": "healthy", "ollama": "connected", "rag_documents": {...}}`
+- [ ] `GET /api/health` returns `{"status": "healthy", "llamacpp": "connected", "rag_documents": {...}}`
 - [ ] WebSocket connection survives idle for >5 minutes (heartbeat functional)
-- [ ] Ollama client uses HTTP keep-alive (verified via `netstat -an | findstr 11434`)
+- [ ] llama.cpp client uses HTTP keep-alive (verified via `netstat -an | findstr 8080`)
 - [ ] API rejects requests with wrong `X-API-Key` with 403 Forbidden
 
 #### Out of Scope
@@ -225,8 +224,8 @@ Create a `test_suite.json` with expected outputs; after model pull, run evaluati
 
 #### Advanced Coding Patterns
 
-##### Pattern 1: Circuit Breaker for Ollama Resilience
-Implement a circuit breaker (using `pybreaker` or custom) around Ollama calls to prevent cascading failures during model loading.
+##### Pattern 1: Circuit Breaker for llama.cpp Resilience
+Implement a circuit breaker (using `pybreaker` or custom) around llama.cpp calls to prevent cascading failures during model loading.
 
 ```python
 from pybreaker import CircuitBreaker
@@ -234,8 +233,8 @@ from pybreaker import CircuitBreaker
 breaker = CircuitBreaker(fail_max=3, reset_timeout=60)
 
 @breaker
-async def ollama_chat_with_retry(...):
-    # calls ollama_client.chat
+async def llamacpp_chat_with_retry(...):
+    # calls llamacpp_client.chat
 ```
 
 ##### Pattern 2: Dependency Injection with `Annotated`

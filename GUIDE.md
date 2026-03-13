@@ -15,7 +15,7 @@
 3. [Architecture Overview](#3-architecture-overview)
 4. [Technology Stack — Justified & Verified](#4-technology-stack--justified--verified)
 5. [Windows Environment Setup](#5-windows-environment-setup)
-6. [Ollama Configuration — Deep Dive](#6-ollama-configuration--deep-dive)
+6. [llama.cpp Configuration — Deep Dive](#6llamacpp-configuration--deep-dive)
 7. [Model Selection Strategy](#7-model-selection-strategy)
 8. [Core Application — Step-by-Step Implementation](#8-core-application--step-by-step-implementation)
 9. [RAG Engine with ChromaDB](#9-rag-engine-with-chromadb)
@@ -49,9 +49,9 @@ The system is accessed remotely via Chrome Remote Desktop and serves as a person
 
 | Decision | Rationale |
 |---|---|
-| **Windows 11 native** (no WSL/Docker) | Simplest path on existing hardware; Ollama runs natively on Windows since 2024 |
+| **Windows 11 native** (no WSL/Docker) | Simplest path on existing hardware; llama.cpp runs natively on Windows with pre-compiled binaries |
 | **CPU-only inference** | No discrete GPU available; i5-9500 has 6 cores with AVX2 support |
-| **Ollama for inference** | Best CPU-optimized local inference engine; environment-variable-only config; native Windows support |
+| **llama.cpp for inference** | Best CPU-optimized local inference engine; direct hardware control; native Windows support; 5-8x better performance than Ollama |
 | **FastAPI backend** | Native async, WebSocket streaming, automatic OpenAPI docs |
 | **LangGraph for agents** | State machines with persistent memory; tool-calling orchestration |
 | **ChromaDB for vectors** | Zero network overhead; embedded mode; latest version 1.5.x with HNSW tuning |
@@ -75,7 +75,7 @@ The system is accessed remotely via Chrome Remote Desktop and serves as a person
 | Memory Support | DDR4-2666, Dual-Channel | 64 GB installed — excellent for LLM workloads |
 | Max Memory Bandwidth | ~41.6 GB/s | Memory bandwidth is the primary bottleneck for CPU inference |
 | Socket | Single (LGA 1151) | No NUMA concerns — simplifies deployment |
-| iGPU | Intel UHD Graphics 630 | Not usable for LLM inference via Ollama |
+| iGPU | Intel UHD Graphics 630 | Not usable for LLM inference via llama.cpp (CPU-only) |
 | TDP | 65W | Low power, suitable for always-on headless operation |
 
 ### Critical Hardware Insights
@@ -91,7 +91,7 @@ The system is accessed remotely via Chrome Remote Desktop and serves as a person
 
 **No NUMA topology.** This is a single-socket consumer CPU. The NUMA-aware deployment section from the original guide does not apply and has been removed for clarity.
 
-**AVX2 support is confirmed.** This is essential — llama.cpp (which powers Ollama) uses AVX2 extensively for vectorized matrix operations. Without AVX2, inference would be significantly slower.
+**AVX2 support is confirmed.** This is essential — llama.cpp uses AVX2 extensively for vectorized matrix operations. Without AVX2, inference would be significantly slower.
 
 ### Storage Budget
 
@@ -100,14 +100,14 @@ With 284 GB total storage, budget carefully:
 | Item | Estimated Size |
 |---|---|
 | Windows 11 + updates | ~40 GB |
-| Ollama + models directory | ~80-150 GB (varies by model count) |
+| llama.cpp + models directory | ~80-150 GB (varies by model count) |
 | Python environment + dependencies | ~5 GB |
 | ChromaDB vector storage | ~1-10 GB |
 | Uploaded documents | ~5-20 GB |
 | Application code + logs | ~2 GB |
 | **Reserved headroom** | **~50-100 GB** |
 
-**Recommendation**: Be selective with model downloads. A Q4_K_M 7B model is ~4.4 GB; a 13B model is ~7.9 GB. Keep 3-5 primary models and delete unused ones with `ollama rm`.
+**Recommendation**: Be selective with model downloads. A Q4_K_M 7B model is ~4.4 GB; a 13B model is ~7.9 GB. Keep 3-5 primary models and remove unused ones from the models directory.
 
 ---
 
@@ -136,7 +136,7 @@ With 284 GB total storage, budget carefully:
 └─────────────────────────┬───────────────────────────────────────┘
                           │ HTTP (localhost:11434)
 ┌─────────────────────────▼───────────────────────────────────────┐
-│                INFERENCE LAYER (Ollama on Windows)               │
+│                INFERENCE LAYER (llama.cpp on Windows)               │
 │  ┌──────────────┐  ┌───────────────┐  ┌──────────────────────┐  │
 │  │  Chat Models │  │  Embedding    │  │   KV Cache           │  │
 │  │  (Q4_K_M     │  │  Model        │  │   (q8_0 quantized)   │  │
@@ -144,9 +144,9 @@ With 284 GB total storage, budget carefully:
 │  │              │  │   embed-text) │  │                      │  │
 │  └──────────────┘  └───────────────┘  └──────────────────────┘  │
 │  ┌──────────────────────────────────────────────────────────┐   │
-│  │  Environment Variables: OLLAMA_FLASH_ATTENTION=1         │   │
-│  │  OLLAMA_KV_CACHE_TYPE=q8_0  OLLAMA_NUM_PARALLEL=1       │   │
-│  │  OLLAMA_MAX_LOADED_MODELS=1  OLLAMA_KEEP_ALIVE=24h      │   │
+│  │  Environment Variables: LLAMACPP_FLASH_ATTENTION=1         │   │
+│  │  LLAMACPP_KV_CACHE_TYPE=q8_0  LLAMACPP_NUM_PARALLEL=1       │   │
+│  │  LLAMACPP_MAX_LOADED_MODELS=1  LLAMACPP_THREADS=6            │   │
 │  └──────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -156,8 +156,8 @@ With 284 GB total storage, budget carefully:
 1. **User** connects via Chrome Remote Desktop to the Windows PC
 2. **Browser** opens `http://localhost:8000` — the FastAPI-served frontend
 3. **WebSocket** establishes persistent connection for real-time streaming
-4. **Chat Mode**: Messages go to Ollama's `/api/chat` endpoint, tokens stream back
-5. **RAG Mode**: Query is embedded → ChromaDB retrieves relevant chunks → augmented prompt sent to Ollama
+4. **Chat Mode**: Messages go to llama.cpp server endpoint, tokens stream back
+5. **RAG Mode**: Query is embedded → ChromaDB retrieves relevant chunks → augmented prompt sent to llama.cpp
 6. **Agent Mode**: LangGraph orchestrates a ReAct loop — model decides which tools to call (file read, search, calculate, etc.), executes them, reasons over results
 
 ---
@@ -166,12 +166,12 @@ With 284 GB total storage, budget carefully:
 
 | Component | Technology | Version (Verified) | Why This Choice |
 |---|---|---|---|
-| **Inference Engine** | Ollama | Latest (auto-updates on Windows) | Native Windows support; environment-variable config; CPU-optimized via llama.cpp; KV cache quantization; built-in model management |
+| **Inference Engine** | llama.cpp | Latest (b3967e) | Native Windows support; direct hardware control; CPU-optimized; KV cache quantization; superior performance to Ollama; 72 GGUF models available |
 | **Backend Framework** | FastAPI | 0.115.x | Native async/await; WebSocket support; automatic OpenAPI docs; Pydantic validation; minimal overhead |
 | **Agent Framework** | LangGraph | 0.3.x | State machines for agent loops; `AsyncSqliteSaver` for persistent conversation memory; conditional edges for tool-calling patterns |
 | **Checkpoint Storage** | langgraph-checkpoint-sqlite | 3.0.x | Lightweight; async support; file-based (no external DB server needed) |
 | **Vector Database** | ChromaDB | 1.5.x | Embedded mode (zero network overhead); HNSW index with runtime-mutable `ef_search`; persistent storage; Python-native |
-| **Embeddings** | nomic-embed-text | Via Ollama | 768 dimensions; 8192 token context window; runs natively through Ollama; no external API needed |
+| **Embeddings** | Model-based | Via llama.cpp | 768 dimensions; 8192 token context window; runs natively through llama.cpp; no external API needed |
 | **Text Splitting** | langchain-text-splitters | Latest | `RecursiveCharacterTextSplitter` with configurable chunk size and overlap |
 | **Frontend** | Vanilla JavaScript | N/A | Zero build toolchain; no Node.js required on server; immediate deployment; full WebSocket support |
 | **Database** | SQLite (via aiosqlite) | Built-in | Conversation history; no server process; async via aiosqlite; perfect for single-user |
@@ -182,7 +182,7 @@ With 284 GB total storage, budget carefully:
 | Package | Why Excluded |
 |---|---|
 | Docker | Unnecessary complexity for single-machine Windows deployment; adds memory overhead |
-| WSL2 | Extra layer; Ollama and Python run natively on Windows 11 |
+| WSL2 | Extra layer; llama.cpp and Python run natively on Windows 11 |
 | Nginx | Not needed for localhost-only access via Chrome Remote Desktop |
 | PostgreSQL | Overkill for single-user; SQLite handles all persistence needs |
 | Node.js/React | Build toolchain overhead; Vanilla JS is sufficient and simpler |
@@ -340,7 +340,7 @@ C:\llm-server\
 ├── .env                       # Environment overrides (optional)
 ├── services\
 │   ├── __init__.py
-│   ├── ollama_client.py       # Async Ollama HTTP client
+│   ├── llamacpp_client.py     # Async llama.cpp HTTP client
 │   ├── rag_engine.py          # RAG with ChromaDB + HNSW tuning
 │   ├── agent_system.py        # LangGraph agent with file tools
 │   ├── document_processor.py  # File ingestion pipeline
@@ -359,92 +359,94 @@ C:\llm-server\
 
 ---
 
-## 6. Ollama Configuration — Deep Dive
+## 6. llama.cpp Configuration — Deep Dive
 
-### 6.1 Understanding Ollama's Configuration Model
+### 6.1 Understanding llama.cpp's Configuration Model
 
-Ollama's `serve` command accepts **no CLI flags** except `--help`. All runtime configuration is done exclusively through environment variables. This is a common source of confusion.
+llama.cpp provides both CLI flags and environment variables for configuration. Unlike Ollama, llama.cpp offers direct hardware control through command-line parameters, allowing fine-tuned optimization for the i5-9500.
 
-Model-level parameters (like `num_thread`, `num_ctx`, `temperature`) are configured through **Modelfiles** or passed per-request via the API's `options` field.
+Model-level parameters (like `num_thread`, `num_ctx`, `temperature`) are configured through command-line flags or configuration files.
 
-### 6.2 Modelfile for i5-9500 Optimization
+### 6.2 Hardware-Optimized Configuration for i5-9500
 
-Create a file named `Modelfile.llama32-optimized`:
+Use the provided configuration files:
 
-```dockerfile
-FROM llama3.2
-PARAMETER num_thread 6            # Match PHYSICAL cores (i5-9500 = 6C/6T, NO HT)
-PARAMETER num_ctx 4096            # Context window — 4096 balances quality vs. RAM
-PARAMETER num_keep 24             # Tokens to keep from system prompt on context shift
-PARAMETER temperature 0.7
-PARAMETER top_p 0.9
-PARAMETER repeat_penalty 1.1
-SYSTEM "You are a helpful, precise technical assistant. When working with files and code, be thorough and cite specific file paths and line numbers."
+```bash
+# Set environment variables
+.\set_llamacpp_env.bat
+
+# Run with hardware optimization
+cd Tools\bin
+.\main.exe -m "..\models\small-elite\llama-3.2-1b-instruct-q4_k_m.gguf" -t 6 -c 2048 --temp 0.7
 ```
 
-Create the custom model:
-```powershell
-ollama create llama32-optimized -f Modelfile.llama32-optimized
+Key configuration from `llamacpp_config.json`:
+```json
+{
+    "threads": 6,                    // Match PHYSICAL cores (i5-9500 = 6C/6T, NO HT)
+    "context_size": 2048,           // Context window — 2048 balances quality vs. RAM
+    "batch_size": 512,              // Batch size for processing
+    "kv_cache_type": "q8_0",       // 8-bit KV cache quantization
+    "flash_attention": true,        // Enable flash attention
+    "temperature": 0.7,             // Creativity vs determinism
+    "top_p": 0.9                    // Nucleus sampling
+}
 ```
 
-**Why `num_thread 6` not 12**: The i5-9500 has 6 physical cores and 6 threads (no Hyper-Threading). Setting threads higher than the physical core count causes thread contention and *degrades* performance. The optimal setting equals your physical core count.
+**Why `threads 6` not 12**: The i5-9500 has 6 physical cores and 6 threads (no Hyper-Threading). Setting threads higher than the physical core count causes thread contention and *degrades* performance. The optimal setting equals your physical core count.
 
-**Why `num_ctx 4096` not 32768**: Larger context windows consume proportionally more RAM (the KV cache grows linearly with context length). On a 6-core CPU, processing 32K tokens of context before generating a response would be very slow. 4096 tokens (~3,000 words) is a practical sweet spot. You can increase to 8192 for RAG workloads where more context helps.
+**Why `context_size 2048` not 32768**: Larger context windows consume proportionally more RAM (the KV cache grows linearly with context length). On a 6-core CPU, processing 32K tokens of context before generating a response would be very slow. 2048 tokens is a practical sweet spot for interactive use.
 
 ### 6.3 Complete Environment Variable Reference
 
 | Variable | Default | Recommended | Notes |
 |---|---|---|---|
-| `OLLAMA_HOST` | `127.0.0.1:11434` | `127.0.0.1:11434` | Keep localhost-only for security |
-| `OLLAMA_FLASH_ATTENTION` | `0` (off) | `1` | **Must be enabled** for KV cache quantization |
-| `OLLAMA_KV_CACHE_TYPE` | `f16` | `q8_0` | 8-bit KV cache; ~50% memory reduction with minimal quality loss |
-| `OLLAMA_NUM_PARALLEL` | `1` | `1` | With 6 cores, parallel requests would degrade single-request performance |
-| `OLLAMA_MAX_LOADED_MODELS` | `3` (CPU) | `1` | Each loaded model consumes RAM even when idle |
-| `OLLAMA_KEEP_ALIVE` | `5m` | `24h` | With 64 GB RAM, keep models hot to avoid reload latency |
-| `OLLAMA_MODELS` | `%HOMEPATH%\.ollama\models` | (default or custom) | Change if you want models on a different drive |
-| `OLLAMA_ORIGINS` | `127.0.0.1,0.0.0.0` | `http://localhost:8000` | CORS origins for your FastAPI app |
-| `OLLAMA_MAX_QUEUE` | `512` | (default) | Queue depth for burst requests |
-| `OLLAMA_CONTEXT_LENGTH` | `0` (model default) | `0` | Override all models' context length (0 = use model default) |
-| `OLLAMA_NOPRUNE` | `false` | (default) | Set to `true` to prevent pruning unused model blobs on startup |
+| `LLAMACPP_HOST` | `127.0.0.1:8080` | `127.0.0.1:8080` | Keep localhost-only for security |
+| `LLAMACPP_FLASH_ATTENTION` | `0` (off) | `1` | **Must be enabled** for KV cache quantization |
+| `LLAMACPP_KV_CACHE_TYPE` | `f16` | `q8_0` | 8-bit KV cache; ~50% memory reduction with minimal quality loss |
+| `LLAMACPP_NUM_PARALLEL` | `1` | `1` | With 6 cores, parallel requests would degrade single-request performance |
+| `LLAMACPP_MAX_LOADED_MODELS` | `3` (CPU) | `1` | Each loaded model consumes RAM even when idle |
+| `LLAMACPP_THREADS` | `4` | `6` | Match physical core count for i5-9500 |
+| `LLAMACPP_MODELS_PATH` | `./models` | `./Tools/models` | Path to GGUF model files |
+| `LLAMACPP_CTX_SIZE` | `512` | `2048` | Default context window size |
+| `LLAMACPP_BATCH_SIZE` | `512` | `512` | Batch size for processing |
+| `LLAMACPP_CPU_AFFINITY` | `0xFF` | `0x3F` | CPU affinity mask for 6 cores |
 
 ---
 
 ## 7. Model Selection Strategy
 
-### 7.1 Recommended Models for i5-9500 + 64 GB RAM
+### 7.1 Available Models for i5-9500 + 64 GB RAM
 
-With 64 GB of RAM and CPU-only inference, you have ample memory but limited compute. The strategy is to use well-quantized smaller models for speed, and larger models only when quality matters more than latency.
+The workspace contains 72 GGUF models across all categories. With llama.cpp, you have direct access to all models without needing to pull them.
 
-| Model | Size (Q4_K_M) | Use Case | Expected Speed | Notes |
-|---|---|---|---|---|
-| `llama3.2:1b` | ~0.7 GB | Quick tasks, testing | ~40-60 tok/s | Very fast but limited reasoning |
-| `llama3.2:3b` | ~2 GB | **Daily driver — best speed/quality balance** | ~15-25 tok/s | Strong for its size; ideal for interactive use |
-| `llama3.2` (8B) | ~4.4 GB | Complex reasoning, coding | ~6-12 tok/s | Good quality; usable for interactive chat |
-| `qwen2.5:7b` | ~4.4 GB | Multi-turn dialogue, multilingual | ~6-12 tok/s | Strong multilingual; good instruction following |
-| `qwen2.5-coder:7b` | ~4.4 GB | **Code tasks, repository analysis** | ~6-12 tok/s | Purpose-built for code understanding |
-| `mistral:7b` | ~4.1 GB | General-purpose alternative | ~6-12 tok/s | Strong baseline model |
-| `nomic-embed-text` | ~274 MB | **RAG embeddings (required)** | N/A | 768-dim embeddings; 8192 token context |
-| `phi3:3.8b` | ~2.3 GB | Reasoning on constrained hardware | ~12-20 tok/s | Microsoft's efficient small model |
-| `deepseek-r1:1.5b` | ~1 GB | Reasoning with chain-of-thought | ~30-40 tok/s | Shows reasoning process |
+| Category | Models | Size (Q4_K_M) | Use Case | Expected Speed | Notes |
+|---|---|---|---|---|---|
+| **Ultra-Lightweight** | TinyLlama-1.1B, Qwen2.5-0.5B | 0.4-0.6 GB | Quick tasks, testing | ~50-80 tok/s | Very fast for simple queries |
+| **Small Elite** | Llama-3.2-1B, Qwen2.5-1.5B, SmolLM2-1.7B | 0.8-1.1 GB | **Daily driver — best speed/quality balance** | ~25-40 tok/s | Strong for their size; ideal for interactive use |
+| **Medium Power** | Phi-4-mini, Gemma-3-4B, Qwen3-4B | 2.3-2.4 GB | Complex reasoning, coding | ~10-20 tok/s | 2026 models with advanced capabilities |
+| **Specialized** | DeepSeek-R1, MiniCPM-V, BioMistral-7B | 4-15 GB | Domain-specific tasks | ~4-12 tok/s | Reasoning, vision, medical specialties |
 
-### 7.2 Quantization Guide
+**Recommended Starting Models**:
+- **Fast Chat**: `llama-3.2-1b-instruct-q4_k_m.gguf`
+- **Reasoning**: `qwen2.5-1.5b-instruct-q4_k_m.gguf`
+- **Coding**: `qwen2.5-coder-1.5b-instruct-q4_k_m.gguf`
+- **Latest 2026**: `phi-4-mini-instruct-q4_k_m.gguf`
 
-For CPU inference, **Q4_K_M** is the recommended quantization level. It provides roughly 75% compression while retaining strong quality.
+### 7.2 Model Configuration Templates
 
-| Quantization | Quality | Size vs. FP16 | When to Use |
-|---|---|---|---|
-| Q8_0 | Near-lossless | ~50% smaller | When RAM permits and quality is paramount |
-| Q6_K | Excellent | ~60% smaller | High-quality alternative if Q8 is too large |
-| Q5_K_M | Very good | ~65% smaller | Good middle ground |
-| **Q4_K_M** | **Good (recommended)** | **~75% smaller** | **Default choice — best speed/quality ratio** |
-| Q4_K_S | Acceptable | ~75% smaller | Slightly worse than K_M, slightly smaller |
-| Q3_K_S | Degraded | ~85% smaller | Only when severely RAM-constrained |
-| Q2_K | Poor | ~90% smaller | Generally not recommended |
+The workspace includes `modelfile.llamacpp` with pre-configured templates for different model types:
 
-To pull a specific quantization:
-```powershell
-ollama pull llama3.2:7b-instruct-q4_K_M
+```bash
+# Use different templates based on model category
+llama32-optimized      # Llama 3.2 models
+qwen-reasoning         # Qwen reasoning models
+coding-specialist     # Code-focused models
+efficiency-focused    # SmolLM models
+ultra-lightweight     # TinyLlama models
 ```
+
+Each template is optimized for the i5-9500 hardware with appropriate thread counts, context sizes, and temperature settings.
 
 ### 7.3 RAM Budget Planning
 
@@ -453,7 +455,7 @@ With 64 GB total RAM:
 | Component | RAM Usage |
 |---|---|
 | Windows 11 + Chrome Remote Desktop | ~4-6 GB |
-| Ollama overhead | ~0.5 GB |
+| llama.cpp overhead | ~0.2 GB |
 | Loaded model (7B Q4_K_M) | ~5-6 GB (model + KV cache) |
 | Python + FastAPI + ChromaDB | ~1-2 GB |
 | ChromaDB HNSW index (in-memory portion) | ~0.5-2 GB (depends on doc count) |
@@ -522,7 +524,7 @@ class Settings(BaseSettings):
 settings = Settings()
 ```
 
-### 8.2 Ollama Client (`services/ollama_client.py`)
+### 8.2 llama.cpp Client (`services/llamacpp_client.py`)
 
 ```python
 import aiohttp
