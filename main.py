@@ -749,6 +749,8 @@ async def search_documents(
     try:
         query = request.get("query", "")
         top_k = request.get("top_k", 5)
+        ef_search = request.get("ef_search", None)
+        hybrid_mode = request.get("hybrid_mode", False)
 
         if not query:
             raise HTTPException(status_code=400, detail="Query parameter is required")
@@ -757,20 +759,194 @@ async def search_documents(
         if not rag_engine or not rag_engine.initialized:
             raise HTTPException(status_code=503, detail="RAG engine not available")
 
-        results = await rag_engine.search(query, top_k)
+        results = await rag_engine.search(query, top_k, ef_search, hybrid_mode)
 
         return {
             "success": True,
             "query": query,
             "results": results,
-            "total_results": len(results)
+            "total_results": len(results),
+            "ef_search": ef_search,
+            "hybrid_mode": hybrid_mode
         }
 
     except HTTPException:
         raise
     except Exception as e:
-        logger.error("Document search failed", query=request.get("query", ""), error=str(e))
+        logger.error("Document search failed", error=str(e))
         raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
+
+
+# Maintenance Endpoints (T-006.4)
+@app.get("/api/maintenance/info")
+async def get_maintenance_info(api_key: Optional[str] = Depends(verify_api_key)):
+    """Get comprehensive database and maintenance information."""
+    try:
+        from scripts.maintenance import ChromaMaintenanceManager
+        
+        rag_engine = get_service("rag_engine")
+        if not rag_engine or not rag_engine.initialized:
+            raise HTTPException(status_code=503, detail="RAG engine not available")
+        
+        # Get RAG stats
+        rag_stats = await rag_engine.get_stats()
+        
+        # Get maintenance info
+        maintenance_manager = ChromaMaintenanceManager(rag_engine.db_path)
+        maintenance_info = await maintenance_manager.get_database_info(privacy_mode=True)
+        
+        return {
+            "success": True,
+            "rag_stats": rag_stats,
+            "maintenance_info": maintenance_info,
+            "timestamp": int(time.time())
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Maintenance info failed", error=str(e))
+        raise HTTPException(status_code=500, detail=f"Maintenance info failed: {str(e)}")
+
+
+@app.post("/api/maintenance/wal/commit")
+async def commit_wal(api_key: Optional[str] = Depends(verify_api_key)):
+    """Commit WAL entries to HNSW index."""
+    try:
+        from scripts.maintenance import ChromaMaintenanceManager
+        
+        rag_engine = get_service("rag_engine")
+        if not rag_engine or not rag_engine.initialized:
+            raise HTTPException(status_code=503, detail="RAG engine not available")
+        
+        maintenance_manager = ChromaMaintenanceManager(rag_engine.db_path)
+        result = await maintenance_manager.commit_wal(force=True)
+        
+        return {
+            "success": result.get("success", False),
+            "result": result,
+            "timestamp": int(time.time())
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("WAL commit failed", error=str(e))
+        raise HTTPException(status_code=500, detail=f"WAL commit failed: {str(e)}")
+
+
+@app.post("/api/maintenance/wal/clean")
+async def clean_wal(api_key: Optional[str] = Depends(verify_api_key)):
+    """Clean up committed WAL entries."""
+    try:
+        from scripts.maintenance import ChromaMaintenanceManager
+        
+        rag_engine = get_service("rag_engine")
+        if not rag_engine or not rag_engine.initialized:
+            raise HTTPException(status_code=503, detail="RAG engine not available")
+        
+        maintenance_manager = ChromaMaintenanceManager(rag_engine.db_path)
+        result = await maintenance_manager.clean_wal(force=True)
+        
+        return {
+            "success": result.get("success", False),
+            "result": result,
+            "timestamp": int(time.time())
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("WAL clean failed", error=str(e))
+        raise HTTPException(status_code=500, detail=f"WAL clean failed: {str(e)}")
+
+
+@app.post("/api/maintenance/backup")
+async def create_backup(
+    request: dict = {"backup_path": "backups"},
+    api_key: Optional[str] = Depends(verify_api_key)
+):
+    """Create a database backup."""
+    try:
+        from scripts.maintenance import ChromaMaintenanceManager
+        
+        backup_path = request.get("backup_path", "backups")
+        
+        rag_engine = get_service("rag_engine")
+        if not rag_engine or not rag_engine.initialized:
+            raise HTTPException(status_code=503, detail="RAG engine not available")
+        
+        maintenance_manager = ChromaMaintenanceManager(rag_engine.db_path)
+        result = await maintenance_manager.create_backup(backup_path)
+        
+        return {
+            "success": result.get("success", False),
+            "result": result,
+            "timestamp": int(time.time())
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Backup creation failed", error=str(e))
+        raise HTTPException(status_code=500, detail=f"Backup failed: {str(e)}")
+
+
+@app.post("/api/maintenance/suite")
+async def run_maintenance_suite(
+    request: dict = {"backup_path": None},
+    api_key: Optional[str] = Depends(verify_api_key)
+):
+    """Run complete maintenance suite."""
+    try:
+        from scripts.maintenance import ChromaMaintenanceManager
+        
+        backup_path = request.get("backup_path")
+        
+        rag_engine = get_service("rag_engine")
+        if not rag_engine or not rag_engine.initialized:
+            raise HTTPException(status_code=503, detail="RAG engine not available")
+        
+        maintenance_manager = ChromaMaintenanceManager(rag_engine.db_path)
+        result = await maintenance_manager.run_maintenance_suite(backup_path)
+        
+        return {
+            "success": result.get("success", False),
+            "result": result,
+            "timestamp": int(time.time())
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Maintenance suite failed", error=str(e))
+        raise HTTPException(status_code=500, detail=f"Maintenance suite failed: {str(e)}")
+
+
+@app.get("/api/maintenance/wal/info")
+async def get_wal_info(api_key: Optional[str] = Depends(verify_api_key)):
+    """Get WAL information."""
+    try:
+        from scripts.maintenance import ChromaMaintenanceManager
+        
+        rag_engine = get_service("rag_engine")
+        if not rag_engine or not rag_engine.initialized:
+            raise HTTPException(status_code=503, detail="RAG engine not available")
+        
+        maintenance_manager = ChromaMaintenanceManager(rag_engine.db_path)
+        result = await maintenance_manager.get_wal_info()
+        
+        return {
+            "success": result.get("success", False),
+            "result": result,
+            "timestamp": int(time.time())
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("WAL info failed", error=str(e))
+        raise HTTPException(status_code=500, detail=f"WAL info failed: {str(e)}")
 
 
 # Error handlers
