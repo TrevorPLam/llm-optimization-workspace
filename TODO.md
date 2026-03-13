@@ -1124,23 +1124,48 @@ Expected binaries from config.json:
 **Last Updated**: 2026-03-12
 
 #### Enhanced Task Description
-Based on 2026 security best practices and PowerShell automation frameworks, this task involves comprehensive verification of binary integrity for all llama.cpp executables. The task requires implementing SHA256 hash verification, downloading official releases for comparison, and creating automated integrity monitoring systems to ensure security and functionality.
+Based on 2026 enterprise security best practices and PowerShell automation frameworks research, this task involves comprehensive verification of binary integrity for all llama.cpp executables with advanced security patterns. The task requires implementing SHA256 hash verification with parallel processing optimization, downloading official releases for comparison with GitHub API rate limiting, and creating automated integrity monitoring systems with real-time threat assessment, progressive verification workflows, and enterprise-grade audit trails to ensure security, functionality, and NIST compliance.
+
+**Strategic Analysis:**
+- **Current State**: 100+ executables in Tools/bin/ require comprehensive security verification
+- **Key Challenges**: Large-scale verification, GitHub API integration, enterprise security compliance
+- **Optimization Strategy**: Parallel processing + GitHub API efficiency + enterprise security patterns + progressive verification
+
+**2026 Best Practices Integration:**
+- PowerShell ForEach-Object -Parallel for 3x batch processing improvement
+- GitHub API with exponential backoff and circuit breaker patterns
+- Enterprise-grade security with NIST Cybersecurity Framework compliance
+- Progressive verification system with binary classification (Critical/Important/Optional)
+- Real-time threat assessment with automated quarantine and replacement workflows
 
 #### Subtasks
-- [ ] **SYS-001.1**: Create comprehensive binary integrity verification framework
-- [ ] **SYS-001.2**: Implement automated SHA256 hash calculation for all binaries
-- [ ] **SYS-001.3**: Download official llama.cpp releases for hash comparison
-- [ ] **SYS-001.4**: Build automated comparison and mismatch detection system
-- [ ] **SYS-001.5**: Create binary backup and secure replacement procedures
-- [ ] **SYS-001.6**: Implement integrity reporting and alerting system
-- [ ] **SYS-001.7**: Document verification processes and security procedures
-- [ ] **SYS-001.8**: Create ongoing integrity monitoring and validation system
+- [ ] **SYS-001.1**: Create comprehensive binary integrity verification framework with parallel processing
+- [ ] **SYS-001.2**: Implement automated SHA256 hash calculation with ForEach-Object -Parallel (3x speed improvement)
+- [ ] **SYS-001.3**: Download official llama.cpp releases with GitHub API rate limiting and caching
+- [ ] **SYS-001.4**: Build automated comparison and mismatch detection with progressive verification system
+- [ ] **SYS-001.5**: Create binary backup and secure replacement procedures with automated rollback
+- [ ] **SYS-001.6**: Implement integrity reporting and alerting system with real-time threat assessment
+- [ ] **SYS-001.7**: Document verification processes and security procedures with NIST compliance
+- [ ] **SYS-001.8**: Create ongoing integrity monitoring and validation system with automated scheduling
+- [ ] **SYS-001.9**: Add binary classification system (Critical/Important/Optional) with tiered priority
+- [ ] **SYS-001.10**: Implement advanced security features (code signing validation, Authenticode checking)
+- [ ] **SYS-001.11**: Build performance optimization with incremental hash verification and smart caching
+- [ ] **SYS-001.12**: Create comprehensive audit trail system with forensic analysis capabilities
+- [ ] **SYS-001.13**: Add integration hooks for existing optimization scripts with pre-execution validation
+- [ ] **SYS-001.14**: Implement automated quarantine and replacement workflows for compromised binaries
+- [ ] **SYS-001.15**: Create compliance reporting with enterprise-grade security matrices
+- [ ] **SYS-001.16**: Add multi-algorithm support (SHA256 + SHA512) for enhanced security coverage
+- [ ] **SYS-001.17**: Implement smart backup procedures with encryption and access logging
+- [ ] **SYS-001.18**: Create comprehensive error handling with exponential backoff and circuit breaker patterns
 
 #### Target Files
 - `Tools/bin/*.exe` (100+ executables to verify)
 - `Tools/bin/*.dll` (DLL files to verify)
-- `Scripts/binary_integrity_verifier.ps1` (new comprehensive verification suite)
-- `Config/binary_hashes.json` (hash database for verification)
+- `Scripts/binary_integrity_verifier.ps1` (new comprehensive verification suite with 18 advanced functions)
+- `Config/binary_hashes.json` (hash database for verification with automated backup)
+- `Config/binary_classification.json` (binary classification system: Critical/Important/Optional)
+- `Reports/integrity_audit_*.json` (comprehensive audit trail and forensic analysis)
+- `Logs/integrity_monitoring_*.log` (real-time monitoring and threat assessment logs)
 
 #### Related Files
 - `config.json` (binary path references)
@@ -1149,16 +1174,21 @@ Based on 2026 security best practices and PowerShell automation frameworks, this
 - `Documentation/binary_integrity_report.md` (new verification documentation)
 
 #### Definition of Done
-- [ ] All critical binaries verified against official releases
-- [ ] SHA256 hashes calculated and documented for all binaries
-- [ ] Comprehensive verification process documented with security procedures
-- [ ] Compromised binaries identified and replaced with official versions
-- [ ] Binary integrity check function implemented and tested
-- [ ] Automated hash database created and maintained
-- [ ] Integrity monitoring and alerting system operational
-- [ ] Backup and recovery procedures established
-- [ ] Security verification reports generated
-- [ ] Ongoing integrity validation system implemented
+- [ ] All critical binaries verified against official releases with progressive verification workflow
+- [ ] SHA256 + SHA512 hashes calculated and documented for all binaries with parallel processing
+- [ ] Comprehensive verification process documented with NIST security compliance procedures
+- [ ] Compromised binaries identified and automatically quarantined/replaced with official versions
+- [ ] Binary integrity check function implemented with 18 advanced security functions
+- [ ] Automated hash database created and maintained with smart caching and incremental updates
+- [ ] Real-time integrity monitoring and alerting system operational with threat assessment
+- [ ] Automated backup and recovery procedures established with encryption and access logging
+- [ ] Enterprise-grade security verification reports generated with compliance matrices
+- [ ] Ongoing integrity validation system implemented with automated scheduling and audit trails
+- [ ] Binary classification system operational (Critical/Important/Optional) with tiered priority
+- [ ] Code signing validation implemented with Authenticode signature checking
+- [ ] Performance optimization achieved with 3x faster batch processing via parallel execution
+- [ ] GitHub API integration operational with rate limiting and caching mechanisms
+- [ ] Integration hooks added to existing optimization scripts with pre-execution validation
 
 #### Out of Scope
 - [ ] Building binaries from source (separate task for advanced users)
