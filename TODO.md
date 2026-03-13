@@ -516,77 +516,375 @@ Available models from memory (10 total):
 **Status**: 🔴 Not Started  
 **Priority**: Critical  
 **Estimated Time**: 30 minutes  
+**Last Updated**: 2026-03-12
+
+#### Enhanced Task Description
+Based on 2026 PowerShell validation and JSON management best practices, this task involves comprehensive validation and correction of binary paths in config.json. The task requires testing path existence, binary functionality, help command execution, and implementing automated validation frameworks with proper error handling and reporting.
 
 #### Subtasks
-- [ ] **CRIT-003.1**: Test each binary path in config.json
-- [ ] **CRIT-003.2**: Verify all referenced executables exist
-- [ ] **CRIT-003.3**: Test each binary with --help flag
-- [ ] **CRIT-003.4**: Update config.json with corrected paths if needed
-- [ ] **CRIT-003.5**: Create path validation function
+- [ ] **CRIT-003.1**: Create comprehensive binary validation framework
+- [ ] **CRIT-003.2**: Implement JSON schema validation for config.json
+- [ ] **CRIT-003.3**: Test all binary paths with existence and functionality checks
+- [ ] **CRIT-003.4**: Create automated path correction and normalization system
+- [ ] **CRIT-003.5**: Add help command testing for all binaries
+- [ ] **CRIT-003.6**: Build validation reporting and logging system
+- [ ] **CRIT-003.7**: Update config.json with verified and corrected paths
+- [ ] **CRIT-003.8**: Create automated regression testing for path validation
 
 #### Target Files
-- `config.json` (binary_paths section)
-- `Tools/bin/main.exe`
-- `Tools/bin/llama-server.exe`
-- `Tools/bin/llama-quantize.exe`
-- `Tools/bin-avx2/main.exe` (if exists)
+- `config.json` (binary_paths section validation and correction)
+- `Scripts/binary_path_validator.ps1` (new comprehensive validation suite)
+- `Tools/bin/*.exe` (all binaries to be validated)
 
 #### Related Files
-- `Scripts/llm_optimization_core.ps1` (Get-OptimizationConfig function)
-- `Scripts/START_HERE.ps1` (config loading)
+- `Scripts/llm_optimization_core.ps1` (Get-OptimizationConfig function integration)
+- `Scripts/START_HERE.ps1` (config loading and validation)
+- `Tools/bin-avx2/` (AVX2 optimized binaries if available)
 
 #### Definition of Done
 - [ ] All binary paths in config.json point to existing files
-- [ ] Each binary executes without errors
-- [ ] Help command works for all binaries
-- [ ] Path validation function created and tested
-- [ ] Config.json updated with verified paths
+- [ ] Each binary executes without errors and responds to help command
+- [ ] JSON schema validation implemented for config.json integrity
+- [ ] Comprehensive path validation function created and tested
+- [ ] Config.json updated with verified and corrected paths
+- [ ] Automated path correction system implemented
+- [ ] Validation reporting and logging system functional
+- [ ] Regression testing suite for ongoing validation
+- [ ] Error handling and user feedback system implemented
+- [ ] Documentation created for validation processes
 
 #### Out of Scope
-- [ ] Adding new binary entries
-- [ ] Implementing binary version management
-- [ ] Creating binary update mechanisms
-- [ ] Adding binary compatibility checks
+- [ ] Adding new binary entries to config.json
+- [ ] Implementing binary version management system
+- [ ] Creating automated binary update mechanisms
+- [ ] Adding binary compatibility checking beyond basic functionality
+- [ ] Performance optimization of validation processes
 
-#### Advanced Coding Patterns
+#### Advanced Coding Patterns (2026 Best Practices)
 ```powershell
-# Binary path validation with comprehensive testing
-function Test-BinaryPaths {
-    param([hashtable]$BinaryPaths)
+# Comprehensive binary path validation framework
+function Test-BinaryPathsComprehensive {
+    param(
+        [string]$ConfigPath = "config.json",
+        [switch]$UpdateConfig,
+        [switch]$Detailed,
+        [string]$LogPath = "Logs\binary_validation.log"
+    )
     
-    $results = @{}
-    
-    foreach ($path in $BinaryPaths.GetEnumerator()) {
-        $binaryPath = $path.Value
-        $result = @{
-            Exists = $false
-            Executable = $false
-            HelpWorks = $false
-            Error = $null
-        }
-        
-        try {
-            # Test file existence
-            if (Test-Path $binaryPath) {
-                $result.Exists = $true
-                
-                # Test executability
-                $helpTest = & $binaryPath --help 2>&1
-                if ($LASTEXITCODE -eq 0 -or $helpTest -like "*usage*") {
-                    $result.Executable = $true
-                    $result.HelpWorks = $true
-                }
-            }
-        } catch {
-            $result.Error = $_.Exception.Message
-        }
-        
-        $results[$path.Key] = $result
+    $validationResults = @{
+        ConfigValid = $false
+        BinaryTests = @{}
+        PathCorrections = @{}
+        Errors = @()
+        Warnings = @()
+        UpdatedPaths = @{}
     }
     
-    return $results
+    try {
+        # 1. Validate JSON structure
+        Write-Host "Validating config.json structure..." -ForegroundColor Yellow
+        $jsonValidation = Test-JsonConfig -ConfigPath $ConfigPath
+        $validationResults.ConfigValid = $jsonValidation.Valid
+        if (-not $jsonValidation.Valid) {
+            $validationResults.Errors += $jsonValidation.Errors
+            return $validationResults
+        }
+        
+        # 2. Load and validate binary paths
+        Write-Host "Loading binary paths from config..." -ForegroundColor Yellow
+        $config = Get-Content $ConfigPath | ConvertFrom-Json
+        $binaryPaths = $config.binary_paths
+        
+        foreach ($binaryName in $binaryPaths.PSObject.Properties.Name) {
+            $binaryPath = $binaryPaths.$binaryName
+            Write-Host "Testing binary: $binaryName -> $binaryPath" -ForegroundColor Cyan
+            
+            $result = Test-SingleBinaryComprehensive -BinaryName $binaryName -BinaryPath $binaryPath
+            $validationResults.BinaryTests[$binaryName] = $result
+            
+            if (-not $result.Valid) {
+                # Attempt path correction
+                $correction = Find-BinaryPathCorrection -BinaryName $binaryName -OriginalPath $binaryPath
+                if ($correction.Found) {
+                    $validationResults.PathCorrections[$binaryName] = $correction
+                    $validationResults.UpdatedPaths[$binaryName] = $correction.CorrectedPath
+                    
+                    # Test corrected path
+                    $correctedResult = Test-SingleBinaryComprehensive -BinaryName $binaryName -BinaryPath $correction.CorrectedPath
+                    $validationResults.BinaryTests["${binaryName}_corrected"] = $correctedResult
+                } else {
+                    $validationResults.Errors += "Failed to find valid path for $binaryName"
+                }
+            }
+        }
+        
+        # 3. Update config if requested and corrections found
+        if ($UpdateConfig -and $validationResults.PathCorrections.Count -gt 0) {
+            Write-Host "Updating config.json with corrected paths..." -ForegroundColor Yellow
+            Update-ConfigPaths -ConfigPath $ConfigPath -Corrections $validationResults.UpdatedPaths
+        }
+        
+        # 4. Generate detailed report
+        if ($Detailed) {
+            Write-Host "Generating detailed validation report..." -ForegroundColor Yellow
+            $validationResults | Export-Clixml -Path "Reports\binary_validation_$(Get-Date -Format 'yyyyMMdd_HHmmss').xml"
+        }
+        
+    } catch {
+        $validationResults.Errors += "Validation framework error: $($_.Exception.Message)"
+    }
+    
+    # 5. Log results
+    Write-ValidationLog -Results $validationResults -LogPath $LogPath
+    
+    return $validationResults
+}
+
+# JSON schema validation for config.json
+function Test-JsonConfig {
+    param([string]$ConfigPath)
+    
+    $result = @{
+        Valid = $false
+        Errors = @()
+        Warnings = @()
+    }
+    
+    try {
+        # Test basic JSON structure
+        $jsonContent = Get-Content $ConfigPath -Raw
+        if (-not (Test-Json $jsonContent)) {
+            $result.Errors += "Invalid JSON syntax in $ConfigPath"
+            return $result
+        }
+        
+        # Test required structure
+        $config = $jsonContent | ConvertFrom-Json
+        $requiredSections = @("model_paths", "binary_paths", "optimization_defaults", "hardware_config")
+        
+        foreach ($section in $requiredSections) {
+            if (-not ($config.PSObject.Properties.Name -contains $section)) {
+                $result.Errors += "Missing required section: $section"
+            }
+        }
+        
+        # Test binary_paths structure
+        if ($config.binary_paths) {
+            $requiredBinaries = @("main", "server", "quantize")
+            foreach ($binary in $requiredBinaries) {
+                if (-not ($config.binary_paths.PSObject.Properties.Name -contains $binary)) {
+                    $result.Warnings += "Recommended binary missing: $binary"
+                }
+            }
+        }
+        
+        $result.Valid = $result.Errors.Count -eq 0
+        
+    } catch {
+        $result.Errors += "JSON validation error: $($_.Exception.Message)"
+    }
+    
+    return $result
+}
+
+# Comprehensive single binary testing
+function Test-SingleBinaryComprehensive {
+    param(
+        [string]$BinaryName,
+        [string]$BinaryPath,
+        [int]$Timeout = 30
+    )
+    
+    $result = @{
+        Valid = $false
+        Exists = $false
+        Executable = $false
+        HelpWorks = $false
+        Version = $null
+        Error = $null
+        ResponseTime = 0
+        Details = @{}
+    }
+    
+    try {
+        # 1. Test file existence
+        $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+        if (Test-Path $BinaryPath) {
+            $result.Exists = $true
+            $result.Details["FileSize"] = (Get-Item $BinaryPath).Length
+            $result.Details["ModifiedDate"] = (Get-Item $BinaryPath).LastWriteTime
+        } else {
+            $result.Error = "Binary not found: $BinaryPath"
+            return $result
+        }
+        
+        # 2. Test executability (help command)
+        $helpTest = & $BinaryPath --help 2>&1
+        $stopwatch.Stop()
+        $result.ResponseTime = $stopwatch.ElapsedMilliseconds
+        
+        if ($LASTEXITCODE -eq 0 -or $helpTest -like "*usage*" -or $helpTest -like "*help*") {
+            $result.Executable = $true
+            $result.HelpWorks = $true
+            $result.Details["HelpOutputLength"] = $helpTest.Length
+            
+            # Extract version info if available
+            if ($helpTest -match "version\s*[:=]\s*([\d\.]+)") {
+                $result.Version = $matches[1]
+            }
+        } else {
+            $result.Error = "Binary execution failed. Exit code: $LASTEXITCODE"
+            $result.Details["ErrorOutput"] = $helpTest
+        }
+        
+        $result.Valid = $result.Exists -and $result.Executable -and $result.HelpWorks
+        
+    } catch {
+        $result.Error = "Binary testing exception: $($_.Exception.Message)"
+    }
+    
+    return $result
+}
+
+# Automated path correction
+function Find-BinaryPathCorrection {
+    param(
+        [string]$BinaryName,
+        [string]$OriginalPath
+    )
+    
+    $result = @{
+        Found = $false
+        CorrectedPath = $null
+        SearchLocations = @()
+        Reason = $null
+    }
+    
+    # Common binary names and their expected locations
+    $binaryMappings = @{
+        "main" = @("main.exe")
+        "server" = @("llama-server.exe")
+        "quantize" = @("llama-quantize.exe")
+        "avx2" = @("main.exe")
+    }
+    
+    # Search locations
+    $searchPaths = @(
+        "Tools\bin",
+        "Tools\bin-avx2",
+        "bin",
+        "bin-avx2",
+        ".",
+        ".."
+    )
+    
+    if ($binaryMappings.ContainsKey($BinaryName)) {
+        $targetBinaries = $binaryMappings[$BinaryName]
+        
+        foreach ($searchPath in $searchPaths) {
+            foreach ($targetBinary in $targetBinaries) {
+                $testPath = Join-Path $searchPath $targetBinary
+                $result.SearchLocations += $testPath
+                
+                if (Test-Path $testPath) {
+                    $result.Found = $true
+                    $result.CorrectedPath = $testPath
+                    $result.Reason = "Found at alternative location: $testPath"
+                    return $result
+                }
+            }
+        }
+    }
+    
+    $result.Reason = "Binary not found in any search location"
+    return $result
+}
+
+# Config file updating
+function Update-ConfigPaths {
+    param(
+        [string]$ConfigPath,
+        [hashtable]$Corrections
+    )
+    
+    try {
+        $config = Get-Content $ConfigPath | ConvertFrom-Json
+        
+        foreach ($correction in $Corrections.GetEnumerator()) {
+            $binaryName = $correction.Key
+            $correctedPath = $correction.Value
+            
+            if ($config.binary_paths.PSObject.Properties.Name -contains $binaryName) {
+                $config.binary_paths.$binaryName = $correctedPath
+                Write-Host "Updated $binaryName path: $correctedPath" -ForegroundColor Green
+            }
+        }
+        
+        # Backup original config
+        $backupPath = "$ConfigPath.backup_$(Get-Date -Format 'yyyyMMdd_HHmmss')"
+        Copy-Item $ConfigPath $backupPath
+        Write-Host "Config backed up to: $backupPath" -ForegroundColor Yellow
+        
+        # Save updated config
+        $config | ConvertTo-Json -Depth 10 | Set-Content $ConfigPath
+        Write-Host "Config.json updated successfully" -ForegroundColor Green
+        
+    } catch {
+        Write-Error "Failed to update config: $($_.Exception.Message)"
+        throw
+    }
+}
+
+# Validation logging
+function Write-ValidationLog {
+    param(
+        [hashtable]$Results,
+        [string]$LogPath
+    )
+    
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    
+    $logEntry = @"
+$timestamp - Binary Path Validation Results
+========================================
+Config Valid: $($Results.ConfigValid)
+Binaries Tested: $($Results.BinaryTests.Count)
+Path Corrections: $($Results.PathCorrections.Count)
+Errors: $($Results.Errors.Count)
+Warnings: $($Results.Warnings.Count)
+
+Binary Test Results:
+$($Results.BinaryTests | Out-String)
+
+Path Corrections:
+$($Results.PathCorrections | Out-String)
+
+Errors:
+$($Results.Errors | Out-String)
+"@
+    
+    if (-not (Test-Path (Split-Path $LogPath))) {
+        New-Item -ItemType Directory -Path (Split-Path $LogPath) -Force | Out-Null
+    }
+    
+    Add-Content -Path $LogPath -Value $logEntry
 }
 ```
+
+#### Research-Based Enhancements
+- **JSON Validation**: Test-Json cmdlet for schema validation and structure verification
+- **Path Management**: Comprehensive Test-Path usage with IsValid parameter
+- **Automated Correction**: Intelligent path searching and correction algorithms
+- **Binary Testing**: Help command validation and version extraction
+- **Configuration Management**: Safe config updating with backup creation
+- **Logging System**: Comprehensive validation reporting and error tracking
+
+#### Current Binary Inventory
+Expected binaries from config.json:
+1. **main**: Tools\bin\main.exe (primary inference engine)
+2. **server**: Tools\bin\llama-server.exe (HTTP server)
+3. **quantize**: Tools\bin\llama-quantize.exe (quantization tool)
+4. **avx2**: .\bin-avx2\main.exe (AVX2 optimized version - needs correction)
 
 ---
 
