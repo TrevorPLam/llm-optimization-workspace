@@ -1,0 +1,9 @@
+@echo off
+echo Testing llama.cpp installation...
+cd Tools\bin
+echo Running basic inference test...
+.\main.exe -m "..\models\small-elite\llama-3.2-1b-instruct-q4_k_m.gguf" -p "Hello" -n 5 --temp 0.7 2>&1
+echo.
+echo Testing with server mode...
+.\llama-server.exe -m "..\models\small-elite\llama-3.2-1b-instruct-q4_k_m.gguf" --host 127.0.0.1 --port 8080 --ctx-size 2048 -t 6
+pause

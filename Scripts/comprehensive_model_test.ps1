@@ -19,7 +19,6 @@ $ProgressPreference = "Continue"
 $TestResults = @()
 $FailedModels = @()
 $SuccessfulModels = @()
-$PerformanceMetrics = @()
 
 # Logging setup
 $LogDir = ".\Scripts\Logs"
@@ -152,7 +151,8 @@ function Test-SingleModel {
             "--ctx-size", "2048"
         )
         
-        $genProcess = Start-Process -FilePath $MainBinary -ArgumentList $genArgs -NoNewWindow -PassThru -Wait -RedirectStandardOutput "$($env:TEMP)\model_test_output_$(Get-Random).txt"
+        $outputFile = "$($env:TEMP)\model_test_output_$(Get-Random).txt"
+        $genProcess = Start-Process -FilePath $MainBinary -ArgumentList $genArgs -NoNewWindow -PassThru -Wait -RedirectStandardOutput $outputFile
         $genEndTime = Get-Date
         $modelTestResult.GenerationTime = ($genEndTime - $genStartTime).TotalSeconds
         
@@ -161,7 +161,6 @@ function Test-SingleModel {
         }
         
         # Calculate performance metrics
-        $outputFile = "$($env:TEMP)\model_test_output_$(Get-Random).txt"
         if (Test-Path $outputFile) {
             $output = Get-Content $outputFile -Raw
             $modelTestResult.ResponseLength = $output.Length
@@ -217,7 +216,7 @@ function Test-ModelCategory {
     return $categoryResults
 }
 
-function Generate-TestReport {
+function New-TestReport {
     param([array]$Results)
     
     $reportPath = ".\Scripts\Logs\Model_Test_Report_$(Get-Date -Format 'yyyyMMdd_HHmmss').md"
@@ -270,7 +269,7 @@ function Generate-TestReport {
 "@
         }
     } else {
-        $reportContent += "✅ All models passed successfully!\n"
+        $reportContent += "✅ All models passed successfully!`n"
     }
     
     $reportContent += @"
@@ -330,7 +329,7 @@ try {
     
     # Generate report
     if ($GenerateReport -or $TestCategory -eq "all") {
-        $reportPath = Generate-TestReport -Results $TestResults
+        $reportPath = New-TestReport -Results $TestResults
         Write-Host "📊 Test report generated: $reportPath" -ForegroundColor Cyan
     }
     
@@ -352,6 +351,6 @@ try {
     Write-Log "Fatal error in testing framework: $($_.Exception.Message)" -Level "ERROR"
     Write-Host "❌ Testing failed: $($_.Exception.Message)" -ForegroundColor Red
     exit 1
+} finally {
+    Write-Log "Model testing framework completed"
 }
-
-Write-Log "Model testing framework completed successfully"

@@ -1,0 +1,56 @@
+{
+    "model_deployment": {
+        "hardware_config": {
+            "cpu_cores": 6,
+            "cpu_threads": 6,
+            "cpu_affinity": "0x3F",
+            "architecture": "Coffee Lake S Refresh",
+            "avx2_support": true,
+            "memory_bandwidth": "41.6 GB/s"
+        },
+        "optimization_settings": {
+            "context_size": 2048,
+            "batch_size": 512,
+            "micro_batch_size": 32,
+            "threads": 6,
+            "temperature": 0.7,
+            "top_p": 0.9,
+            "repeat_penalty": 1.1,
+            "gpu_layers": 0,
+            "use_mmap": true,
+            "use_mlock": false,
+            "embedding": false,
+            "kv_cache_type": "q8_0",
+            "flash_attention": true
+        },
+        "model_paths": {
+            "primary_chat": "./Tools/models/small-elite/llama-3.2-1b-instruct-q4_k_m.gguf",
+            "reasoning": "./Tools/models/small-elite/qwen2.5-1.5b-instruct-q4_k_m.gguf",
+            "coding": "./Tools/models/small-elite/qwen2.5-coder-1.5b-instruct-q4_k_m.gguf",
+            "efficiency": "./Tools/models/small-elite/smolLM2-1.7b-instruct-q4_k_m.gguf",
+            "lightweight": "./Tools/models/ultra-lightweight/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf"
+        },
+        "server_config": {
+            "host": "127.0.0.1",
+            "port": 8080,
+            "ctx_size": 2048,
+            "threads": 6,
+            "n_gpu_layers": -1,
+            "n_batch": 512,
+            "n_parallel": 1,
+            "n_ctx": 2048,
+            "rope_scaling_type": 1,
+            "rope_freq_base": 10000,
+            "rope_freq_scale": 1.0,
+            "type_k": "q8_0",
+            "type_v": "q8_0"
+        },
+        "performance_targets": {
+            "tokens_per_second_1b": "30-50",
+            "tokens_per_second_3b": "15-25",
+            "tokens_per_second_7b": "6-12",
+            "memory_usage_limit_gb": 50,
+            "max_loaded_models": 1
+        }
+    }
+}
