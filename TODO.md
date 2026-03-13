@@ -622,15 +622,51 @@ Available models from memory (10 total):
 #### Enhanced Task Description
 Based on 2026 PowerShell validation and JSON management best practices, this task involves comprehensive validation and correction of binary paths in config.json. The task requires testing path existence, binary functionality, help command execution, and implementing automated validation frameworks with proper error handling and reporting.
 
+**Strategic Analysis:**
+- **Current State**: config.json has 4 binary paths requiring validation; Tools/bin contains 123+ executables
+- **Key Challenges**: Path normalization, binary functionality testing, safe configuration updates, automated correction
+- **Optimization Strategy**: Create comprehensive validation framework with intelligent path correction and backup procedures
+
+**2026 Best Practices Integration:**
+- PowerShell Test-Json cmdlet for schema validation
+- Automated path correction with search algorithms
+- Comprehensive logging with audit trails
+- Safe configuration updates with backup procedures
+- Error handling with specific catch blocks
+
 #### Subtasks
 - [ ] **CRIT-003.1**: Create comprehensive binary validation framework
+  - Create Scripts/binary_path_validator.ps1 with Test-BinaryPathsComprehensive function
+  - Implement Test-JsonConfig function using PowerShell Test-Json cmdlet (2026 best practices)
+  - Add comprehensive error handling with specific catch blocks
 - [ ] **CRIT-003.2**: Implement JSON schema validation for config.json
+  - Use Test-Json cmdlet for structure validation
+  - Validate required sections: model_paths, binary_paths, optimization_defaults, hardware_config
+  - Add schema validation for binary_paths integrity
 - [ ] **CRIT-003.3**: Test all binary paths with existence and functionality checks
+  - Implement Test-SingleBinaryComprehensive with existence, executability, and help testing
+  - Test all 4 binary paths: main.exe, llama-server.exe, llama-quantize.exe, avx2/main.exe
+  - Add response time measurement and version extraction
 - [ ] **CRIT-003.4**: Create automated path correction and normalization system
+  - Implement Find-BinaryPathCorrection with intelligent search algorithms
+  - Search multiple locations: Tools/bin, Tools/bin-avx2, bin, bin-avx2
+  - Add path normalization and relative/absolute path handling
 - [ ] **CRIT-003.5**: Add help command testing for all binaries
+  - Test --help command execution for all binaries
+  - Validate help output contains usage information
+  - Extract version information from help output when available
 - [ ] **CRIT-003.6**: Build validation reporting and logging system
+  - Implement Write-ValidationLog with timestamped entries
+  - Create Update-ConfigPaths with backup procedures
+  - Add comprehensive error categorization and audit trails
 - [ ] **CRIT-003.7**: Update config.json with verified and corrected paths
+  - Implement safe configuration updates with automated backup
+  - Create backup before any modifications
+  - Update only corrected paths, preserve valid ones
 - [ ] **CRIT-003.8**: Create automated regression testing for path validation
+  - Create Scripts/binary_validation_regression.ps1
+  - Implement automated testing of validation framework
+  - Add performance monitoring and validation history tracking
 
 #### Target Files
 - `config.json` (binary_paths section validation and correction)
