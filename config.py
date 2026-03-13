@@ -9,7 +9,7 @@ import psutil
 from pathlib import Path
 from typing import Dict, List, Optional, Union
 
-from pydantic import BaseModel, Field, validator, root_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings
 
 
@@ -23,16 +23,18 @@ class HardwareConfig(BaseModel):
     priority: str = Field(default="RealTime", description="Process priority")
     avx2_enabled: bool = Field(default=True, description="AVX2 instruction support")
     
-    @validator('threads')
-    def validate_threads(cls, v, values):
+    @field_validator('threads')
+    @classmethod
+    def validate_threads(cls, v, info):
         """Ensure thread count doesn't exceed physical cores for i5-9500."""
-        cpu_cores = values.get('cpu_cores', 6)
+        cpu_cores = info.data.get('cpu_cores', 6)
         if v > cpu_cores:
             # i5-9500 has no hyperthreading, limit to physical cores
             return cpu_cores
         return v
     
-    @validator('cpu_affinity')
+    @field_validator('cpu_affinity')
+    @classmethod
     def validate_cpu_affinity(cls, v):
         """Validate CPU affinity setting."""
         valid_affinities = ["Maximum", "High", "Normal", "Low"]
@@ -40,7 +42,8 @@ class HardwareConfig(BaseModel):
             raise ValueError(f"CPU affinity must be one of: {valid_affinities}")
         return v
     
-    @validator('priority')
+    @field_validator('priority')
+    @classmethod
     def validate_priority(cls, v):
         """Validate process priority setting."""
         valid_priorities = ["RealTime", "High", "AboveNormal", "Normal", "BelowNormal", "Low"]
@@ -66,15 +69,15 @@ class ModelPaths(BaseModel):
     smollm3: str = Field(default=".\\Tools\\models\\smollm3-3b-q4_k_m.gguf")
     deepseek_r1: str = Field(default=".\\Tools\\models\\deepseek-r1-distill-qwen-14b-q4_k_m.gguf")
     
-    @validator('*')
-    def validate_model_exists(cls, v, field):
+    @field_validator('*')
+    @classmethod
+    def validate_model_exists(cls, v, info):
         """Validate that model files exist."""
-        if field.name != '__root__':  # Skip root validator
+        field_name = info.field_name
+        if field_name != '__root__':  # Skip root validator
             model_path = Path(v)
             if not model_path.exists():
-                # Log warning but don't fail - models might be downloaded later
-                import warnings
-                warnings.warn(f"Model file not found: {v}")
+                raise ValueError(f"Model file not found: {v}")
         return v
 
 
@@ -97,21 +100,24 @@ class OptimizationDefaults(BaseModel):
     gpu_layers: int = Field(default=0, description="Number of GPU layers (0 for CPU-only)")
     kv_cache_type: str = Field(default="q8_0", description="KV cache quantization type")
     
-    @validator('threads')
+    @field_validator('threads')
+    @classmethod
     def validate_threads(cls, v):
         """Ensure reasonable thread limits."""
         if v < 1 or v > 32:
             raise ValueError("Threads must be between 1 and 32")
         return v
     
-    @validator('context_size')
+    @field_validator('context_size')
+    @classmethod
     def validate_context_size(cls, v):
         """Ensure reasonable context size."""
         if v < 512 or v > 32768:
             raise ValueError("Context size must be between 512 and 32768")
         return v
     
-    @validator('kv_cache_type')
+    @field_validator('kv_cache_type')
+    @classmethod
     def validate_kv_cache_type(cls, v):
         """Validate KV cache quantization type."""
         valid_types = ["f16", "q8_0", "q4_0", "q4_1"]
@@ -129,20 +135,22 @@ class ServerConfig(BaseModel):
     reload: bool = Field(default=False, description="Auto-reload on code changes")
     log_level: str = Field(default="INFO", description="Logging level")
     
-    @validator('port')
+    @field_validator('port')
+    @classmethod
     def validate_port(cls, v):
         """Validate port range."""
         if v < 1 or v > 65535:
             raise ValueError("Port must be between 1 and 65535")
         return v
     
-    @validator('log_level')
+    @field_validator('log_level')
+    @classmethod
     def validate_log_level(cls, v):
         """Validate log level."""
         valid_levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
-        if v.upper() not in valid_levels:
+        if v not in valid_levels:
             raise ValueError(f"Log level must be one of: {valid_levels}")
-        return v.upper()
+        return v
 
 
 class DatabaseConfig(BaseModel):
@@ -151,7 +159,8 @@ class DatabaseConfig(BaseModel):
     chroma_persist_directory: str = Field(default="./chroma_db", description="ChromaDB storage directory")
     sqlite_database_url: str = Field(default="sqlite:///./llm_server.db", description="SQLite connection string")
     
-    @validator('chroma_persist_directory')
+    @field_validator('chroma_persist_directory')
+    @classmethod
     def validate_chroma_directory(cls, v):
         """Ensure ChromaDB directory path is valid."""
         path = Path(v)
@@ -192,19 +201,20 @@ class Settings(BaseSettings):
         env_nested_delimiter = "__"
         case_sensitive = False
     
-    @validator('environment')
+    @field_validator('environment')
+    @classmethod
     def validate_environment(cls, v):
         """Validate environment setting."""
         valid_envs = ["development", "production", "testing"]
-        if v.lower() not in valid_envs:
+        if v not in valid_envs:
             raise ValueError(f"Environment must be one of: {valid_envs}")
         return v.lower()
     
-    @root_validator
-    def validate_hardware_compatibility(cls, values):
+    @model_validator(mode='after')
+    def validate_hardware_compatibility(cls, model):
         """Validate hardware compatibility and optimize settings."""
-        hardware_config = values.get('hardware_config')
-        optimization_defaults = values.get('optimization_defaults')
+        hardware_config = model.hardware_config
+        optimization_defaults = model.optimization_defaults
         
         if hardware_config and optimization_defaults:
             # Ensure thread count matches hardware
@@ -219,7 +229,7 @@ class Settings(BaseSettings):
                 warnings.warn("GPU layers detected but this is a CPU-only setup. Setting gpu_layers to 0.")
                 optimization_defaults.gpu_layers = 0
         
-        return values
+        return model
     
     def get_model_info(self, model_name: str) -> Optional[Dict[str, str]]:
         """Get model information by name."""

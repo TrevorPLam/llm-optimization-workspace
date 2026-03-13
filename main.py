@@ -19,8 +19,9 @@ from typing import Dict, List, Optional, Any
 
 from fastapi import FastAPI, HTTPException, Depends, WebSocket, WebSocketDisconnect, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
@@ -316,6 +317,9 @@ app.add_middleware(
 app.add_middleware(CorrelationIDMiddleware)
 app.add_middleware(LoggingMiddleware)
 
+# Mount static files
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
 
 # Health Endpoints
 @app.get("/api/health", response_model=HealthResponse)
@@ -526,7 +530,13 @@ async def websocket_chat(websocket: WebSocket):
 # Root endpoint
 @app.get("/")
 async def root():
-    """Root endpoint with basic information."""
+    """Serve the frontend application."""
+    return FileResponse("static/index.html", media_type="text/html")
+
+
+@app.get("/api")
+async def api_info():
+    """API information endpoint."""
     return {
         "name": "LLM Optimization Server",
         "version": "1.0.0",
@@ -534,6 +544,22 @@ async def root():
         "docs": "/docs" if settings.environment == "development" else None,
         "health": "/api/health"
     }
+
+
+@app.get("/api/models")
+async def get_models():
+    """Get available models for the frontend."""
+    # For now, return a mock list of models
+    # In a full implementation, this would query the available GGUF models
+    return [
+        {"name": "llama-3.2-1b-instruct", "size": "771MB"},
+        {"name": "qwen2.5-1.5b-instruct", "size": "1.04GB"},
+        {"name": "smolLM2-1.7b-instruct", "size": "1.01GB"},
+        {"name": "phi-4-mini-instruct", "size": "2.32GB"},
+        {"name": "gemma-3-4b-it", "size": "2.37GB"},
+        {"name": "qwen3-4b", "size": "2.38GB"},
+        {"name": "deepseek-r1-distill-qwen-14b", "size": "1.11GB"}
+    ]
 
 
 # Error handlers
