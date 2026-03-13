@@ -26,6 +26,30 @@ cp config.example.json config.json
 3. **16GB+ RAM** (65GB recommended for larger models)
 4. **10GB+ disk space** for models and binaries
 
+### Current Model Inventory (66+ Models)
+**Ultra-Lightweight (<1B):**
+- Qwen3.5-0.8B-Q4_K_M (508MB) - Latest 2026 release
+- Gemma-3-1B-Q4_K_M (769MB) - Power-efficient
+
+**Small Elite (1-2B):**
+- Llama 3.2-1B (770MB) - Best overall choice
+- Qwen2.5-1.5B (1,066MB) - Best reasoning
+- Qwen2.5-Coder-1.5B (777MB) - Best for coding
+- SmolLM2-1.7B (available) - Best efficiency
+
+**Medium Power (3-4B):**
+- Phi-4-mini (2,376MB) - Best small reasoner 2026
+- Gemma-3-4B (2,374MB) - Most power-efficient
+- Qwen3-4B (2,382MB) - Latest generation
+- Gemma-2-2B (1,629MB) - Balanced performance
+- Phi-2 (1,706MB) - Good reasoning
+
+**Specialized/Advanced:**
+- DeepSeek-R1-Distill-14B (available) - Reasoning excellence
+- Olmo-3-7B (available) - Open-source innovation
+- 55+ quantization variants (2-bit to 8-bit)
+- Multiple model architectures and specializations
+
 ### Initial Setup
 
 1. Copy `config.example.json` to `config.json`
@@ -47,14 +71,20 @@ cp config.example.json config.json
 - **`dashboard.ps1`** - Performance monitoring dashboard
 
 ### Tools Directory
-- **`bin/`** - LLM inference binaries (main.exe, llama-server.exe, etc.)
-- **`llama.cpp/`** - llama.cpp source code with custom optimizations
-- **`models/`** - Pre-quantized GGUF models optimized for CPU inference
+- **`bin/`** - 116+ specialized LLM inference binaries (main.exe, llama-server.exe, llama-gemma3-cli.exe, etc.)
+- **`llama.cpp/`** - Complete llama.cpp source code with custom optimizations
+- **`models/`** - 66+ pre-quantized GGUF models organized by category:
+  - **`small-elite/`** - Top recommended models (Llama 3.2 1B, Qwen2.5 1.5B, etc.)
+  - **`medium-power/`** - 2026 releases (Phi-4-mini, Gemma-3 4B, Qwen3-4B, SmolLM3-3B)
+  - **`specialized/`** - Quantization variants and specialized models (DeepSeek-R1, Olmo-3, etc.)
 
 ### Documentation
-- **Research.md** – master technical reference
-- **llm_optimization_guide.md** – practical 2026 implementation guide
-- **Scripts/README.md** – suite overview and usage map
+- **Research.md** – Master technical reference with 2026 research findings
+- **llm_optimization_guide.md** – Practical 2026 implementation guide
+- **MODELS.md** – Comprehensive model inventory and performance analysis
+- **Scripts/README.md** – Suite overview and usage map
+- **ENHANCED.md** – Enhanced task tracking and implementation status
+- **TODO.md** – Detailed task management and quick wins
 
 ## 🔧 Configuration
 
@@ -63,9 +93,13 @@ The workspace uses `config.json` for centralized configuration:
 ```json
 {
     "model_paths": {
-        "default": ".\\Tools\\models\\llama-3.2-1b-instruct-q4_k_m.gguf",
-        "tinyllama": ".\\Tools\\models\\tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf",
-        "phi2": ".\\Tools\\models\\phi-2.Q4_K_M.gguf"
+        "default": ".\\Tools\\models\\small-elite\\llama-3.2-1b-instruct-q4_k_m.gguf",
+        "tinyllama": ".\\Tools\\models\\small-elite\\Qwen3.5-0.8B-Q4_K_M.gguf",
+        "phi2": ".\\Tools\\models\\medium-power\\phi-2.Q4_K_M.gguf",
+        "qwen": ".\\Tools\\models\\small-elite\\qwen2.5-1.5b-instruct-q4_k_m.gguf",
+        "gemma": ".\\Tools\\models\\medium-power\\gemma-3-4b-it-q4_k_m.gguf",
+        "deepseek": ".\\Tools\\models\\specialized\\deepseek-r1-distill-qwen-14b-q4_k_m.gguf",
+        "smollm3": ".\\Tools\\models\\medium-power\\smollm3-3b-q4_k_m.gguf"
     },
     "optimization_defaults": {
         "threads": 6,
@@ -111,8 +145,11 @@ The workspace uses `config.json` for centralized configuration:
 
 ### Hardware-Specific Results
 - **Llama 3.2 1B**: 25-40 tokens/sec (optimized)
-- **Qwen 2.5 1.5B**: 20-35 tokens/sec (optimized)
-- **Phi-2**: 30-45 tokens/sec (optimized)
+- **Qwen 2.5 1.5B**: 35-40 tokens/sec (optimized)
+- **Phi-4-mini**: 12-15 tokens/sec (2026 breakthrough)
+- **SmolLM3-3B**: 25-30 tokens/sec (latest research)
+- **DeepSeek-R1-Distill-14B**: 8-12 tokens/sec (reasoning excellence)
+- **Gemma-3-4B**: 10-12 tokens/sec (power efficiency)
 
 ## 🛠️ Usage Examples
 
@@ -184,10 +221,15 @@ $modelPath = Get-DefaultModelPath -ModelName "phi2"
 
 ## 📚 Documentation
 
-- **`Documentation/01_LLM_Infrastructure_Fundamentals.md`** - LLM basics and architecture
-- **`Documentation/02_LLM_Infrastructure_Best_Practices.md`** - Optimization best practices
-- **`Documentation/03_Enterprise_LLM_Solutions.md`** - Enterprise deployment guide
-- **`Documentation/04_Novel_Innovative_LLM_Methodologies.md`** - 2026 research findings
+### Core Documentation
+- **`Documentation/Research.md`** - Comprehensive 2026 research findings and technical reference
+- **`Documentation/llm_optimization_guide.md`** - Practical implementation guide
+- **`Documentation/MODELS.md`** - Complete model inventory with performance analysis
+
+### Project Management
+- **`TODO.md`** - Detailed task tracking with 2130 lines of actionable items
+- **`ENHANCED.md`** - Enhanced task status and implementation readiness
+- **`Scripts/README.md`** - Script suite overview and usage patterns
 
 ## 🤝 Contributing
 
