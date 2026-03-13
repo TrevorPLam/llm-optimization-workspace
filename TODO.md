@@ -2439,29 +2439,97 @@ function New-SecurityAuditReport {
 **Status**: 🔴 Not Started  
 **Priority**: High  
 **Estimated Time**: 180 minutes  
+**Last Updated**: 2026-03-12
+
+#### Enhanced Task Description
+Based on 2026 LLM benchmarking research and PowerShell performance testing best practices, this task involves creating comprehensive automated performance tests for all 10 workspace models. The task requires implementing industry-standard LLM metrics (TTFT, ITL, TPS, RPS), Pester testing framework integration, and generating detailed performance reports with regression testing capabilities.
+
+**Strategic Analysis:**
+- **Current State**: 10 models available (638MB-2.33GB), basic 5 subtasks need enhancement
+- **Key Challenges**: LLM-specific metrics measurement, standardized testing methodology, comprehensive reporting
+- **Optimization Strategy**: Pester framework integration + NVIDIA benchmarking standards + PowerShell performance monitoring
+
+**2026 Best Practices Integration:**
+- LLM inference metrics: TTFT, ITL, TPS, RPS per NVIDIA GenAI-Perf standards
+- PowerShell Get-Counter for CPU/memory monitoring during inference
+- Pester testing framework for automated regression testing
+- Statistical analysis with multiple iterations and confidence intervals
+- Comprehensive reporting with JSON/HTML output and visualizations  
 
 #### Subtasks
-- [ ] **PERF-001.1**: Test all models with standard prompts
-- [ ] **PERF-001.2**: Measure actual vs claimed performance
-- [ ] **PERF-001.3**: Generate performance reports
-- [ ] **PERF-001.4**: Create performance regression tests
-- [ ] **PERF-001.5**: Benchmark different optimization settings
+- [ ] **PERF-001.1**: Create comprehensive performance testing framework with Pester integration
+  - Create Scripts/performance_tests.ps1 with Start-PerformanceBenchmark function
+  - Integrate Pester testing framework for automated regression testing
+  - Implement PowerShell Get-Counter for real-time CPU/memory monitoring
+  - Add comprehensive error handling and logging for test reliability
+- [ ] **PERF-001.2**: Implement LLM inference metrics measurement (TTFT, ITL, TPS, RPS)
+  - Measure Time to First Token (TTFT) for responsiveness analysis
+  - Calculate Intertoken Latency (ITL) for generation efficiency
+  - Track Tokens per Second (TPS) for throughput measurement
+  - Monitor Requests per Second (RPS) for concurrent performance
+  - Implement NVIDIA GenAI-Perf compatible measurement methodology
+- [ ] **PERF-001.3**: Test all 10 models with standardized prompts and measure performance
+  - Test all workspace models: TinyLlama-1.1B, Llama-3.2-1B, Qwen2.5-1.5B, etc.
+  - Use standardized prompts: reasoning, coding, general conversation
+  - Implement multiple iterations (3-5) for statistical reliability
+  - Measure load time, memory usage, CPU utilization during inference
+  - Create performance profiles for each model by size and capability
+- [ ] **PERF-001.4**: Generate comprehensive performance reports with comparison analysis
+  - Create Reports/performance_baseline.json with detailed metrics
+  - Generate HTML reports with charts and visualizations
+  - Implement model comparison tables and performance rankings
+  - Add statistical analysis with confidence intervals
+  - Export results in JSON, CSV, and HTML formats
+- [ ] **PERF-001.5**: Create performance regression testing with Pester test suites
+  - Develop Pester test suites for automated performance validation
+  - Implement performance threshold testing and alerting
+  - Create baseline comparison tests for regression detection
+  - Add CI/CD integration for automated testing pipelines
+  - Generate performance trend analysis over time
+- [ ] **PERF-001.6**: Benchmark different optimization settings and configurations
+  - Test various thread configurations (1, 2, 4, 6 threads)
+  - Compare different context sizes (512, 1024, 2048 tokens)
+  - Evaluate batch size impacts on performance
+  - Test AVX2 vs non-AVX2 performance differences
+  - Create optimization recommendation matrix
+- [ ] **PERF-001.7**: Implement automated performance monitoring and alerting
+  - Create Scripts/performance_monitor.ps1 for real-time monitoring
+  - Implement performance alerts for threshold violations
+  - Add automated performance logging and history tracking
+  - Create performance dashboard with live metrics
+  - Integrate with existing monitoring infrastructure
+- [ ] **PERF-001.8**: Create performance baseline database and historical tracking
+  - Implement Config/performance_baseline.json for historical data
+  - Create performance trend analysis and visualization
+  - Add model performance comparison over time
+  - Implement performance degradation detection
+  - Create automated backup and archival of test results
 
 #### Target Files
-- `Scripts/performance_tests.ps1` (new file)
-- `Reports/performance_baseline.json` (new file)
+- `Scripts/performance_tests.ps1` (comprehensive testing framework with Pester integration)
+- `Scripts/performance_monitor.ps1` (real-time monitoring and alerting)
+- `Reports/performance_baseline.json` (historical performance database)
+- `Reports/performance_reports/` (HTML/JSON reports with visualizations)
+- `Tests/Performance/` (Pester test suites for regression testing)
 
 #### Related Files
-- `config.json` (test configurations)
-- `Tools/models/*.gguf` (all models to test)
-- `Scripts/llm_optimization_core.ps1` (performance utilities)
+- `config.json` (test configurations and optimization settings)
+- `Tools/models/*.gguf` (all 10 models to test: TinyLlama-1.1B, Llama-3.2-1B, Qwen2.5-1.5B, etc.)
+- `Scripts/llm_optimization_core.ps1` (performance utilities and monitoring)
+- `Scripts/START_HERE.ps1` (menu integration for performance testing)
+- `Scripts/dashboard.ps1` (performance dashboard integration)
 
 #### Definition of Done
-- [ ] All models tested with standardized prompts
-- [ ] Performance metrics documented (tokens/sec, memory usage)
-- [ ] Comparison with claimed performance created
-- [ ] Automated test suite executable
-- [ ] Performance regression detection implemented
+- [ ] All 10 workspace models tested with standardized prompts (reasoning, coding, conversation)
+- [ ] LLM inference metrics measured: TTFT, ITL, TPS, RPS per NVIDIA GenAI-Perf standards
+- [ ] Performance metrics documented: tokens/sec, memory usage, CPU utilization, load times
+- [ ] Comprehensive performance reports generated (JSON, CSV, HTML with visualizations)
+- [ ] Pester regression testing suite implemented with automated validation
+- [ ] Performance baseline database created with historical tracking capabilities
+- [ ] Optimization settings benchmarked with recommendation matrix
+- [ ] Real-time monitoring and alerting system operational
+- [ ] Performance degradation detection and trend analysis implemented
+- [ ] CI/CD integration ready for automated performance testing pipelines
 
 #### Out of Scope
 - [ ] Performance optimization implementation
@@ -2469,43 +2537,213 @@ function New-SecurityAuditReport {
 - [ ] Comparative analysis with other systems
 - [ ] Load testing for concurrent users
 
-#### Advanced Coding Patterns
+#### Advanced Coding Patterns (2026 Best Practices)
 ```powershell
-# Automated performance testing framework
+# Comprehensive LLM performance testing framework with Pester integration
 function Start-PerformanceBenchmark {
     param(
         [string[]]$Models,
-        [string]$TestPrompt = "Explain artificial intelligence",
-        [int]$Tokens = 100,
-        [int]$Iterations = 3
+        [string[]]$TestPrompts,
+        [int]$Iterations = 3,
+        [int]$Threads = 4,
+        [int]$ContextSize = 2048,
+        [switch]$Detailed,
+        [string]$ReportPath = "Reports/performance_reports"
     )
     
-    $results = @()
-    
-    foreach ($model in $Models) {
-        $modelResults = @()
-        
-        for ($i = 0; $i -lt $Iterations; $i++) {
-            $result = Test-ModelPerformance -ModelPath $model -Prompt $TestPrompt -Tokens $Tokens
-            $modelResults += $result
+    $benchmarkResults = @{
+        Metadata = @{
+            Timestamp = Get-Date
+            TestConfiguration = @{
+                Models = $Models
+                Prompts = $TestPrompts
+                Iterations = $Iterations
+                Threads = $Threads
+                ContextSize = $ContextSize
+            }
+            SystemInfo = Get-SystemInfo
         }
-        
-        # Calculate averages
-        $avgResult = @{
-            Model = $model
-            AvgTokensPerSecond = ($modelResults | Measure-Object -Property TokensPerSecond -Average).Average
-            AvgMemoryUsage = ($modelResults | Measure-Object -Property MemoryMB -Average).Average
-            AvgLoadTime = ($modelResults | Measure-Object -Property LoadTimeMs -Average).Average
-            MinTokensPerSecond = ($modelResults | Measure-Object -Property TokensPerSecond -Minimum).Minimum
-            MaxTokensPerSecond = ($modelResults | Measure-Object -Property TokensPerSecond -Maximum).Maximum
-        }
-        
-        $results += $avgResult
+        ModelResults = @{}
+        Summary = @{}
     }
     
-    return $results
+    foreach ($model in $Models) {
+        Write-Host "Testing model: $model" -ForegroundColor Cyan
+        
+        $modelResults = @()
+        
+        foreach ($prompt in $TestPrompts) {
+            for ($i = 0; $i -lt $Iterations; $i++) {
+                $result = Test-ModelPerformanceComprehensive `
+                    -ModelPath $model `
+                    -Prompt $prompt `
+                    -Threads $Threads `
+                    -ContextSize $ContextSize `
+                    -Detailed:$Detailed
+                
+                $modelResults += $result
+            }
+        }
+        
+        # Calculate statistical aggregates
+        $benchmarkResults.ModelResults[$model] = @{
+            RawResults = $modelResults
+            Statistics = Calculate-PerformanceStatistics -Results $modelResults
+            Profile = Get-ModelPerformanceProfile -Results $modelResults
+        }
+    }
+    
+    # Generate summary and comparisons
+    $benchmarkResults.Summary = Get-BenchmarkSummary -ModelResults $benchmarkResults.ModelResults
+    
+    # Generate reports
+    New-PerformanceReport -Results $benchmarkResults -Path $ReportPath
+    
+    return $benchmarkResults
+}
+
+# Individual model performance testing with LLM metrics
+function Test-ModelPerformanceComprehensive {
+    param(
+        [string]$ModelPath,
+        [string]$Prompt,
+        [int]$Threads = 4,
+        [int]$ContextSize = 2048,
+        [switch]$Detailed
+    )
+    
+    $result = @{
+        ModelPath = $ModelPath
+        Prompt = $Prompt
+        Threads = $Threads
+        ContextSize = $ContextSize
+        Timestamp = Get-Date
+    }
+    
+    # Start performance monitoring
+    $monitoring = Start-PerformanceMonitoring
+    
+    try {
+        # Measure load time
+        $loadStopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+        $loadModel = & "Tools\bin\main.exe" -m $ModelPath --no-display
+        $loadStopwatch.Stop()
+        $result.LoadTimeMs = $loadStopwatch.ElapsedMilliseconds
+        
+        # Start inference timing
+        $inferenceStopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+        
+        # Run inference and capture metrics
+        $output = & "Tools\bin\main.exe" `
+            -m $ModelPath `
+            -p $Prompt `
+            -n 100 `
+            --threads $Threads `
+            -c $ContextSize `
+            --color
+        
+        $inferenceStopwatch.Stop()
+        
+        # Calculate LLM metrics
+        $tokens = Extract-TokensFromOutput -Output $output
+        $result.TokensGenerated = $tokens.Count
+        $result.TotalTimeMs = $inferenceStopwatch.ElapsedMilliseconds
+        
+        # Calculate NVIDIA GenAI-Perf compatible metrics
+        $result.TTFT = Measure-TimeToFirstToken -Output $output
+        $result.ITL = Measure-IntertokenLatency -Output $output -TTFT $result.TTFT
+        $result.TPS = Calculate-TokensPerSecond -Tokens $tokens.Count -Time $result.TotalTimeMs
+        $result.RPS = 1 / ($result.TotalTimeMs / 1000) # Single request RPS
+        
+        # Get system resource usage
+        $resourceUsage = Get-ResourceUsage -Monitoring $monitoring
+        $result.CPUUsage = $resourceUsage.CPU
+        $result.MemoryUsageMB = $resourceUsage.MemoryMB
+        $result.PeakMemoryMB = $resourceUsage.PeakMemoryMB
+        
+        $result.Success = $true
+        
+    } catch {
+        $result.Success = $false
+        $result.Error = $_.Exception.Message
+    } finally {
+        Stop-PerformanceMonitoring -Monitoring $monitoring
+    }
+    
+    return $result
+}
+
+# Pester integration for regression testing
+function Invoke-PerformanceRegressionTests {
+    param(
+        [string]$BaselinePath = "Config/performance_baseline.json",
+        [string]$TestSuitePath = "Tests/Performance",
+        [switch]$UpdateBaseline
+    )
+    
+    if ($UpdateBaseline) {
+        Write-Host "Creating new performance baseline..." -ForegroundColor Yellow
+        $baseline = Start-PerformanceBenchmark -Models $global:AvailableModels
+        $baseline | ConvertTo-Json -Depth 10 | Set-Content $BaselinePath
+        return $baseline
+    }
+    
+    # Load baseline for comparison
+    $baseline = Get-Content $BaselinePath | ConvertFrom-Json
+    
+    # Run current tests
+    $current = Start-PerformanceBenchmark -Models $global:AvailableModels
+    
+    # Compare with baseline and detect regressions
+    $regressions = Test-PerformanceRegressions -Baseline $baseline -Current $current
+    
+    # Generate Pester-compatible test results
+    $pesterResults = ConvertTo-PesterResults -Regressions $regressions
+    
+    return $pesterResults
+}
+
+# Real-time performance monitoring
+function Start-PerformanceMonitoring {
+    $monitoring = @{
+        ProcessId = $PID
+        StartTime = Get-Date
+        Counters = @()
+    }
+    
+    # Start background performance monitoring
+    $monitoring.Job = Start-Job -ScriptBlock {
+        $counters = @()
+        for ($i = 0; $i -lt 300; $i++) { # 5 minutes of monitoring
+            $cpu = (Get-Counter -Counter "\Processor(_Total)\% Processor Time" -SampleInterval 1).CounterSamples.CookedValue
+            $memory = (Get-Counter -Counter "\Memory\Available MBytes").CounterSamples.CookedValue
+            $process = Get-Process -Id $using:PID
+            
+            $counters += @{
+                Timestamp = Get-Date
+                CPU = $cpu
+                AvailableMemoryMB = $memory
+                ProcessMemoryMB = [math]::Round($process.WorkingSet64 / 1MB, 2)
+                ThreadCount = $process.Threads.Count
+            }
+            
+            Start-Sleep -Seconds 1
+        }
+        return $counters
+    }
+    
+    return $monitoring
 }
 ```
+
+**Key 2026 Enhancements:**
+- **NVIDIA GenAI-Perf Compatibility**: Industry-standard LLM metrics (TTFT, ITL, TPS, RPS)
+- **Pester Framework Integration**: Automated regression testing with CI/CD support
+- **Real-time Monitoring**: PowerShell Get-Counter for CPU/memory during inference
+- **Statistical Analysis**: Multiple iterations with confidence intervals
+- **Comprehensive Reporting**: JSON/CSV/HTML outputs with visualizations
+- **Performance Profiles**: Model-specific performance characteristics
+- **Regression Detection**: Automated performance degradation identification
 
 ---
 
