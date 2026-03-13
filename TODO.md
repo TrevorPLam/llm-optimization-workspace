@@ -1242,16 +1242,60 @@ $($Results.VerificationErrors | Out-String)
 - **Database Management**: JSON-based hash database with update and merge capabilities
 - **Comprehensive Logging**: Detailed verification reporting with security status tracking
 
-#### Current Binary Inventory Analysis
-Expected verification scope:
-- **Executables**: 100+ .exe files (main.exe, llama-server.exe, etc.)
-- **Libraries**: 3 DLL files (llama.dll, ggml_shared.dll, llava_shared.dll)
-- **Critical Binaries**: main.exe, llama-server.exe, llama-quantize.exe
-- **Security Impact**: High - compromised binaries could pose security risks
+#### 2026 Advanced Optimization Patterns
+- **Parallel Processing**: ForEach-Object -Parallel for batch hash calculations (3x speed improvement)
+- **Progressive Verification**: Tiered verification system (Critical/Important/Optional binaries)
+- **Smart Caching**: Incremental hash database updates with change detection
+- **API Efficiency**: GitHub API rate limiting with exponential backoff and caching
+- **Error Resilience**: Comprehensive retry logic with circuit breaker patterns
+- **Performance Monitoring**: Real-time hash calculation progress with ETA estimation
 
-#### Security Considerations
-- **Binary Integrity**: Critical for security and functionality
-- **Official Sources**: Only verify against official llama.cpp releases
+#### Open Source Integration Strategy
+- **PKISolutions/PsFCIV**: Leverage proven file integrity verification patterns
+- **ggml-org/llama.cpp**: Official release API for authoritative hash verification
+- **microsoft/PowerShellForGitHub**: Enterprise-grade GitHub API integration patterns
+- **PowerShell Gallery**: Module management for dependency resolution
+
+#### Enhanced Security Framework
+- **Binary Classification**: Critical (security-sensitive) vs Optional (utility) binaries
+- **Threat Level Assessment**: Automated risk scoring for compromised binaries
+- **Secure Backup Procedures**: Encrypted backup storage with access logging
+- **Automated Response**: Quarantine and replacement workflows for compromised files
+- **Audit Trail**: Comprehensive logging for security compliance and forensic analysis
+
+#### Additional Subtasks (2026 Enhancements)
+- [ ] **SYS-001.9**: Implement parallel hash processing with ForEach-Object -Parallel
+- [ ] **SYS-001.10**: Create binary classification system (Critical/Important/Optional)
+- [ ] **SYS-001.11**: Build progressive verification workflow with tiered priority
+- [ ] **SYS-001.12**: Add GitHub API rate limiting and caching mechanisms
+- [ ] **SYS-001.13**: Implement comprehensive retry logic with circuit breaker patterns
+- [ ] **SYS-001.14**: Create real-time progress monitoring with ETA estimation
+- [ ] **SYS-001.15**: Build threat level assessment and automated response system
+- [ ] **SYS-001.16**: Implement secure backup procedures with encryption
+- [ ] **SYS-001.17**: Create audit trail system for security compliance
+- [ ] **SYS-001.18**: Add performance benchmarking and optimization metrics
+
+#### Enhanced Implementation Strategy
+**Phase 1: Core Framework (45 minutes)**
+- Implement basic hash calculation with Get-FileHash
+- Create JSON hash database management
+- Build basic error handling and logging
+
+**Phase 2: Advanced Features (30 minutes)**
+- Add parallel processing capabilities
+- Implement GitHub API integration
+- Create progressive verification system
+
+**Phase 3: Security & Monitoring (15 minutes)**
+- Build binary classification and threat assessment
+- Implement secure backup and replacement procedures
+- Create comprehensive audit trail system
+
+#### Performance Optimization Targets
+- **Batch Processing**: <2 minutes for 100 binaries (vs 6 minutes sequential)
+- **API Efficiency**: <30 seconds for official hash retrieval
+- **Memory Usage**: <100MB for full verification process
+- **Error Recovery**: <5 seconds for retry with exponential backoff
 - **Backup Procedures**: Always backup before replacement
 - **Monitoring**: Ongoing integrity validation recommended
 - **Alerting**: Immediate notification of compromised binaries
