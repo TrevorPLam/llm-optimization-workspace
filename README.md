@@ -26,7 +26,10 @@ cp config.example.json config.json
 3. **16GB+ RAM** (65GB recommended for larger models)
 4. **10GB+ disk space** for models and binaries
 
-### Current Model Inventory (66+ Models)
+### Current Model Inventory (72 GGUF Models)
+**Total Model Storage**: 62.53GB
+**Available Disk Space**: 284.83GB (of 476.17GB total)
+
 **Ultra-Lightweight (<1B):**
 - Qwen3.5-0.8B-Q4_K_M (508MB) - Latest 2026 release
 - Gemma-3-1B-Q4_K_M (769MB) - Power-efficient
@@ -35,7 +38,7 @@ cp config.example.json config.json
 - Llama 3.2-1B (770MB) - Best overall choice
 - Qwen2.5-1.5B (1,066MB) - Best reasoning
 - Qwen2.5-Coder-1.5B (777MB) - Best for coding
-- SmolLM2-1.7B (available) - Best efficiency
+- SmolLM2-1.7B (1,007MB) - Best efficiency
 
 **Medium Power (3-4B):**
 - Phi-4-mini (2,376MB) - Best small reasoner 2026
@@ -43,11 +46,12 @@ cp config.example.json config.json
 - Qwen3-4B (2,382MB) - Latest generation
 - Gemma-2-2B (1,629MB) - Balanced performance
 - Phi-2 (1,706MB) - Good reasoning
+- SmolLM3-3B (1,827MB) - Latest breakthrough
 
 **Specialized/Advanced:**
-- DeepSeek-R1-Distill-14B (available) - Reasoning excellence
-- Olmo-3-7B (available) - Open-source innovation
-- 55+ quantization variants (2-bit to 8-bit)
+- DeepSeek-R1-Distill-14B (1,112MB) - Reasoning excellence
+- Olmo-3-7B (537MB) - Open-source innovation
+- 46 quantization variants (IQ2, Q3, Q4, Q5, Q6, Q8)
 - Multiple model architectures and specializations
 
 ### Initial Setup
@@ -73,10 +77,11 @@ cp config.example.json config.json
 ### Tools Directory
 - **`bin/`** - 116+ specialized LLM inference binaries (main.exe, llama-server.exe, llama-gemma3-cli.exe, etc.)
 - **`llama.cpp/`** - Complete llama.cpp source code with custom optimizations
-- **`models/`** - 66+ pre-quantized GGUF models organized by category:
+- **`models/`** - 72 pre-quantized GGUF models organized by category:
   - **`small-elite/`** - Top recommended models (Llama 3.2 1B, Qwen2.5 1.5B, etc.)
   - **`medium-power/`** - 2026 releases (Phi-4-mini, Gemma-3 4B, Qwen3-4B, SmolLM3-3B)
   - **`specialized/`** - Quantization variants and specialized models (DeepSeek-R1, Olmo-3, etc.)
+  - **`ultra-lightweight/`** - Minimal footprint models for edge deployment
 
 ### Documentation
 - **Research.md** – Master technical reference with 2026 research findings
