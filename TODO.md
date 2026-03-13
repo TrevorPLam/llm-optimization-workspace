@@ -894,50 +894,367 @@ Expected binaries from config.json:
 **Status**: 🔴 Not Started  
 **Priority**: High  
 **Estimated Time**: 90 minutes  
+**Last Updated**: 2026-03-12
+
+#### Enhanced Task Description
+Based on 2026 security best practices and PowerShell automation frameworks, this task involves comprehensive verification of binary integrity for all llama.cpp executables. The task requires implementing SHA256 hash verification, downloading official releases for comparison, and creating automated integrity monitoring systems to ensure security and functionality.
 
 #### Subtasks
-- [ ] **SYS-001.1**: Download official llama.cpp binaries
-- [ ] **SYS-001.2**: Calculate SHA256 hashes for current binaries
-- [ ] **SYS-001.3**: Compare with official release hashes
-- [ ] **SYS-001.4**: Replace mismatched binaries if needed
-- [ ] **SYS-001.5**: Document binary verification process
+- [ ] **SYS-001.1**: Create comprehensive binary integrity verification framework
+- [ ] **SYS-001.2**: Implement automated SHA256 hash calculation for all binaries
+- [ ] **SYS-001.3**: Download official llama.cpp releases for hash comparison
+- [ ] **SYS-001.4**: Build automated comparison and mismatch detection system
+- [ ] **SYS-001.5**: Create binary backup and secure replacement procedures
+- [ ] **SYS-001.6**: Implement integrity reporting and alerting system
+- [ ] **SYS-001.7**: Document verification processes and security procedures
+- [ ] **SYS-001.8**: Create ongoing integrity monitoring and validation system
 
 #### Target Files
-- `Tools/bin/*.exe` (all binaries)
-- `Tools/models/*.gguf` (model files)
+- `Tools/bin/*.exe` (100+ executables to verify)
+- `Tools/bin/*.dll` (DLL files to verify)
+- `Scripts/binary_integrity_verifier.ps1` (new comprehensive verification suite)
+- `Config/binary_hashes.json` (hash database for verification)
 
 #### Related Files
 - `config.json` (binary path references)
 - `Scripts/llm_optimization_core.ps1` (binary loading functions)
 - `Documentation/Research.md` (security documentation)
+- `Documentation/binary_integrity_report.md` (new verification documentation)
 
 #### Definition of Done
 - [ ] All critical binaries verified against official releases
-- [ ] SHA256 hashes documented for all binaries
-- [ ] Verification process documented
-- [ ] Compromised binaries replaced with official versions
-- [ ] Binary integrity check function implemented
+- [ ] SHA256 hashes calculated and documented for all binaries
+- [ ] Comprehensive verification process documented with security procedures
+- [ ] Compromised binaries identified and replaced with official versions
+- [ ] Binary integrity check function implemented and tested
+- [ ] Automated hash database created and maintained
+- [ ] Integrity monitoring and alerting system operational
+- [ ] Backup and recovery procedures established
+- [ ] Security verification reports generated
+- [ ] Ongoing integrity validation system implemented
 
 #### Out of Scope
-- [ ] Building binaries from source
-- [ ] Implementing automated binary updates
-- [ ] Creating binary distribution system
-- [ ] Adding binary version management
+- [ ] Building binaries from source (separate task for advanced users)
+- [ ] Implementing automated binary update mechanisms (future enhancement)
+- [ ] Creating binary distribution system (beyond scope)
+- [ ] Adding binary version management system (future consideration)
+- [ ] Model file integrity verification (separate task)
 
-#### Advanced Coding Patterns
+#### Advanced Coding Patterns (2026 Best Practices)
 ```powershell
-# Comprehensive binary verification system
-function Test-BinaryIntegrity {
-    param([string]$BinaryPath, [string]$ExpectedHash)
+# Comprehensive binary integrity verification framework
+function Test-BinaryIntegrityComprehensive {
+    param(
+        [string]$BinaryPath = "Tools\bin",
+        [string]$HashDatabase = "Config\binary_hashes.json",
+        [switch]$UpdateDatabase,
+        [switch]$DownloadOfficial,
+        [switch]$Detailed,
+        [string]$LogPath = "Logs\binary_integrity.log"
+    )
     
-    $actualHash = (Get-FileHash -Path $BinaryPath -Algorithm SHA256).Hash
+    $verificationResults = @{
+        TotalBinaries = 0
+        VerifiedBinaries = 0
+        CompromisedBinaries = 0
+        MissingHashes = 0
+        HashMismatches = @()
+        VerificationErrors = @()
+        Timestamp = Get-Date
+        DetailedResults = @{}
+    }
+    
+    try {
+        # 1. Load or create hash database
+        Write-Host "Loading hash database..." -ForegroundColor Yellow
+        $hashDatabase = Get-HashDatabase -Path $HashDatabase
+        
+        # 2. Download official releases if requested
+        if ($DownloadOfficial) {
+            Write-Host "Downloading official llama.cpp releases..." -ForegroundColor Yellow
+            $officialHashes = Get-OfficialLlamaCppHashes
+            $hashDatabase = Merge-HashDatabases -Current $hashDatabase -Official $officialHashes
+        }
+        
+        # 3. Scan all binaries
+        Write-Host "Scanning binaries for integrity verification..." -ForegroundColor Yellow
+        $binaries = Get-ChildItem -Path $BinaryPath -Filter *.exe, *.dll -Recurse
+        $verificationResults.TotalBinaries = $binaries.Count
+        
+        foreach ($binary in $binaries) {
+            $result = Test-SingleBinaryIntegrity -Binary $binary -HashDatabase $hashDatabase
+            $verificationResults.DetailedResults[$binary.FullName] = $result
+            
+            if ($result.Verified) {
+                $verificationResults.VerifiedBinaries++
+            } elseif ($result.Compromised) {
+                $verificationResults.CompromisedBinaries++
+                $verificationResults.HashMismatches += $result
+            } else {
+                $verificationResults.MissingHashes++
+            }
+        }
+        
+        # 4. Update hash database if requested
+        if ($UpdateDatabase) {
+            Write-Host "Updating hash database with new hashes..." -ForegroundColor Yellow
+            Update-HashDatabase -Path $HashDatabase -Results $verificationResults.DetailedResults
+        }
+        
+        # 5. Generate detailed report
+        if ($Detailed) {
+            Write-Host "Generating detailed integrity report..." -ForegroundColor Yellow
+            $reportPath = "Reports\binary_integrity_$(Get-Date -Format 'yyyyMMdd_HHmmss').json"
+            $verificationResults | ConvertTo-Json -Depth 10 | Out-File -FilePath $reportPath
+        }
+        
+    } catch {
+        $verificationResults.VerificationErrors += "Framework error: $($_.Exception.Message)"
+    }
+    
+    # 6. Log results
+    Write-IntegrityLog -Results $verificationResults -LogPath $LogPath
+    
+    return $verificationResults
+}
+
+# Single binary integrity verification
+function Test-SingleBinaryIntegrity {
+    param(
+        [System.IO.FileInfo]$Binary,
+        [hashtable]$HashDatabase
+    )
     
     $result = @{
-        Path = $BinaryPath
-        ExpectedHash = $ExpectedHash
-        ActualHash = $actualHash
-        IsValid = ($actualHash -eq $ExpectedHash)
-        Timestamp = Get-Date
+        Binary = $Binary.FullName
+        Verified = $false
+        Compromised = $false
+        ExpectedHash = $null
+        ActualHash = $null
+        Algorithm = "SHA256"
+        FileSize = $Binary.Length
+        LastModified = $Binary.LastWriteTime
+        Error = $null
+    }
+    
+    try {
+        # Calculate actual hash
+        $actualHash = (Get-FileHash -Path $Binary.FullName -Algorithm SHA256).Hash
+        $result.ActualHash = $actualHash
+        
+        # Check against database
+        $binaryKey = $Binary.Name
+        if ($HashDatabase.ContainsKey($binaryKey)) {
+            $expectedHash = $HashDatabase[$binaryKey]
+            $result.ExpectedHash = $expectedHash
+            
+            if ($actualHash -eq $expectedHash) {
+                $result.Verified = $true
+            } else {
+                $result.Compromised = $true
+                $result.Error = "Hash mismatch detected"
+            }
+        } else {
+            $result.Error = "No hash found in database"
+        }
+        
+    } catch {
+        $result.Error = "Hash calculation error: $($_.Exception.Message)"
+    }
+    
+    return $result
+}
+
+# Download official llama.cpp hashes
+function Get-OfficialLlamaCppHashes {
+    $result = @{}
+    
+    try {
+        # Get latest release information
+        $releaseApi = "https://api.github.com/repos/ggml-org/llama.cpp/releases/latest"
+        $releaseInfo = Invoke-RestMethod -Uri $releaseApi -TimeoutSec 30
+        
+        # Download SHA256SUMS if available
+        foreach ($asset in $releaseInfo.assets) {
+            if ($asset.name -like "*SHA256SUMS*" -or $asset.name -like "*sha256*") {
+                Write-Host "Downloading official hash file: $($asset.name)" -ForegroundColor Green
+                $hashContent = Invoke-RestMethod -Uri $asset.browser_download_url -TimeoutSec 60
+                
+                # Parse hash file
+                foreach ($line in $hashContent -split "\n") {
+                    if ($line.Trim() -and $line -match "^([a-fA-F0-9]+)\s+(.+)$") {
+                        $hash = $matches[1].ToLower()
+                        $filename = $matches[2]
+                        $result[$filename] = $hash
+                    }
+                }
+                break
+            }
+        }
+        
+        # If no hash file found, calculate from individual binaries
+        if ($result.Count -eq 0) {
+            Write-Host "No official hash file found, calculating from individual binaries..." -ForegroundColor Yellow
+            foreach ($asset in $releaseInfo.assets) {
+                if ($asset.name -like "*.exe" -or $asset.name -like "*.dll") {
+                    Write-Host "Calculating hash for: $($asset.name)" -ForegroundColor Cyan
+                    $tempFile = "temp_$($asset.name)"
+                    
+                    try {
+                        Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $tempFile -TimeoutSec 120
+                        $hash = (Get-FileHash -Path $tempFile -Algorithm SHA256).Hash
+                        $result[$asset.name] = $hash.ToLower()
+                    } finally {
+                        if (Test-Path $tempFile) { Remove-Item $tempFile -Force }
+                    }
+                }
+            }
+        }
+        
+    } catch {
+        Write-Warning "Failed to download official hashes: $($_.Exception.Message)"
+    }
+    
+    return $result
+}
+
+# Hash database management
+function Get-HashDatabase {
+    param([string]$Path)
+    
+    if (Test-Path $Path) {
+        try {
+            return Get-Content $Path | ConvertFrom-Json
+        } catch {
+            Write-Warning "Failed to load hash database, creating new one"
+            return @{}
+        }
+    } else {
+        return @{}
+    }
+}
+
+function Update-HashDatabase {
+    param(
+        [string]$Path,
+        [hashtable]$Results
+    )
+    
+    try {
+        # Create directory if needed
+        $directory = Split-Path $Path
+        if (-not (Test-Path $directory)) {
+            New-Item -ItemType Directory -Path $directory -Force | Out-Null
+        }
+        
+        # Load existing database
+        $database = Get-HashDatabase -Path $Path
+        
+        # Update with new hashes
+        foreach ($result in $Results.GetEnumerator()) {
+            $binaryInfo = $result.Value
+            if ($binaryInfo.ActualHash -and -not $binaryInfo.Compromised) {
+                $filename = Split-Path $binaryInfo.Binary -Leaf
+                $database[$filename] = $binaryInfo.ActualHash
+            }
+        }
+        
+        # Save updated database
+        $database | ConvertTo-Json -Depth 10 | Out-File -FilePath $Path
+        Write-Host "Hash database updated: $Path" -ForegroundColor Green
+        
+    } catch {
+        Write-Error "Failed to update hash database: $($_.Exception.Message)"
+    }
+}
+
+# Binary backup and replacement
+function Backup-And-ReplaceBinary {
+    param(
+        [string]$BinaryPath,
+        [string]$OfficialBinaryUrl,
+        [string]$BackupDir = "Backup\CompromisedBinaries"
+    )
+    
+    try {
+        # Create backup
+        if (-not (Test-Path $BackupDir)) {
+            New-Item -ItemType Directory -Path $BackupDir -Force | Out-Null
+        }
+        
+        $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
+        $backupPath = Join-Path $BackupDir "$(Split-Path $BinaryPath -Leaf)_$timestamp"
+        Copy-Item $BinaryPath $backupPath
+        Write-Host "Binary backed up to: $backupPath" -ForegroundColor Yellow
+        
+        # Download official binary
+        Write-Host "Downloading official binary..." -ForegroundColor Yellow
+        Invoke-WebRequest -Uri $OfficialBinaryUrl -OutFile $BinaryPath -TimeoutSec 120
+        Write-Host "Binary replaced with official version" -ForegroundColor Green
+        
+        return $true
+    } catch {
+        Write-Error "Failed to replace binary: $($_.Exception.Message)"
+        return $false
+    }
+}
+
+# Integrity logging
+function Write-IntegrityLog {
+    param(
+        [hashtable]$Results,
+        [string]$LogPath
+    )
+    
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    
+    $logEntry = @"
+$timestamp - Binary Integrity Verification Results
+=================================================
+Total Binaries: $($Results.TotalBinaries)
+Verified: $($Results.VerifiedBinaries)
+Compromised: $($Results.CompromisedBinaries)
+Missing Hashes: $($Results.MissingHashes)
+Verification Errors: $($Results.VerificationErrors.Count)
+
+Security Status: $(if ($Results.CompromisedBinaries -gt 0) { "COMPROMISED" } else { "SECURE" })
+
+Compromised Binaries:
+$($Results.HashMismatches | Out-String)
+
+Verification Errors:
+$($Results.VerificationErrors | Out-String)
+"@
+    
+    if (-not (Test-Path (Split-Path $LogPath))) {
+        New-Item -ItemType Directory -Path (Split-Path $LogPath) -Force | Out-Null
+    }
+    
+    Add-Content -Path $LogPath -Value $logEntry
+}
+```
+
+#### Research-Based Enhancements
+- **PowerShell Get-FileHash**: Native SHA256 calculation with proper error handling
+- **PsFCIV Framework**: Professional checksum verification patterns for batch processing
+- **GitHub API Integration**: Automated official release download and hash extraction
+- **Security Best Practices**: Binary backup, secure replacement, and integrity monitoring
+- **Database Management**: JSON-based hash database with update and merge capabilities
+- **Comprehensive Logging**: Detailed verification reporting with security status tracking
+
+#### Current Binary Inventory Analysis
+Expected verification scope:
+- **Executables**: 100+ .exe files (main.exe, llama-server.exe, etc.)
+- **Libraries**: 3 DLL files (llama.dll, ggml_shared.dll, llava_shared.dll)
+- **Critical Binaries**: main.exe, llama-server.exe, llama-quantize.exe
+- **Security Impact**: High - compromised binaries could pose security risks
+
+#### Security Considerations
+- **Binary Integrity**: Critical for security and functionality
+- **Official Sources**: Only verify against official llama.cpp releases
+- **Backup Procedures**: Always backup before replacement
+- **Monitoring**: Ongoing integrity validation recommended
+- **Alerting**: Immediate notification of compromised binaries
     }
     
     if (-not $result.IsValid) {
