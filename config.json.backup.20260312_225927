@@ -1,0 +1,28 @@
+﻿{
+    "model_paths":  {
+                        "default":  ".\\Tools\\models\\llama-3.2-1b-instruct-q4_k_m.gguf",
+                        "tinyllama":  ".\\Tools\\models\\tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf",
+                        "phi2":  ".\\Tools\\models\\phi-2.Q4_K_M.gguf",
+                        "qwen":  ".\\Tools\\models\\qwen2.5-1.5b-instruct-q4_k_m.gguf",
+                        "gemma":  ".\\Tools\\models\\gemma-3-4b-it-q4_k_m.gguf"
+                    },
+    "binary_paths":  {
+                         "main":  ".\\Tools\\bin\\main.exe",
+                         "server":  ".\\Tools\\bin\\llama-server.exe",
+                         "quantize":  ".\\Tools\\bin\\llama-quantize.exe",
+                         "avx2":  ".\\Tools\\bin\\main.exe"
+                     },
+    "optimization_defaults":  {
+                                  "threads":  6,
+                                  "context_size":  2048,
+                                  "batch_size":  512,
+                                  "micro_batch_size":  32,
+                                  "gpu_layers":  0
+                              },
+    "hardware_config":  {
+                            "cpu_cores":  6,
+                            "cpu_affinity":  "Maximum",
+                            "priority":  "RealTime",
+                            "avx2_enabled":  true
+                        }
+}
