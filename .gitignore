@@ -1,0 +1,105 @@
+# Large model files (multiple GB)
+*.gguf
+*.bin
+*.safetensors
+*.pth
+*.pt
+*.ckpt
+*.pkl
+*.h5
+*.pb
+
+# Model directories
+Tools/models/
+Tools/models_temp/
+Tools/llama.cpp/
+Tools/bin/
+
+# Log files
+*.log
+main.log
+
+# System diagnostic files
+dxdiag_output.txt
+
+# Cache and temporary files
+.cache/
+*.cache/
+*.tmp/
+*.temp/
+*.swp
+*.swo
+*~
+
+# IDE and editor files
+.vscode/
+.idea/
+*.sublime-*
+.DS_Store
+Thumbs.db
+
+# PowerShell and batch files (optional - comment out if you want to include)
+# *.ps1
+# *.bat
+
+# Configuration files with sensitive data
+config.json
+.env
+.env.*
+secrets.*
+
+# Build artifacts
+*.exe
+*.dll
+*.so
+*.dylib
+*.obj
+*.o
+
+# Documentation build output
+docs/_build/
+site/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Package files
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+# Large text files that shouldn't be in version control
+*.txt
+# Keep specific important text files by negating exceptions
+!README.md
+!TODO.md
+!PROMPT.md
+!PROMPT2.md
+!ENHANCED.md
