@@ -17,7 +17,7 @@ import uuid
 from contextlib import asynccontextmanager
 from typing import Dict, List, Optional, Any
 
-from fastapi import FastAPI, HTTPException, Depends, WebSocket, WebSocketDisconnect, Request, status
+from fastapi import FastAPI, HTTPException, Depends, WebSocket, WebSocketDisconnect, Request, status, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -26,6 +26,8 @@ from pydantic import BaseModel, Field
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 import structlog
+import aiofiles
+from pathlib import Path
 
 from config import settings, validate_system_requirements
 from services import (
@@ -64,6 +66,30 @@ class HealthResponse(BaseModel):
     version: str = Field(..., description="Application version")
     components: Dict[str, Any] = Field(..., description="Component health status")
     system: Dict[str, Any] = Field(..., description="System information")
+
+
+class DocumentUploadResponse(BaseModel):
+    """Document upload response model."""
+    success: bool = Field(..., description="Upload success status")
+    message: str = Field(..., description="Response message")
+    file_name: Optional[str] = Field(None, description="Uploaded file name")
+    chunks_added: Optional[int] = Field(None, description="Number of chunks added")
+    processing_time: Optional[float] = Field(None, description="Processing time in seconds")
+    content_hash: Optional[str] = Field(None, description="Content hash for deduplication")
+
+
+class DocumentListResponse(BaseModel):
+    """Document list response model."""
+    success: bool = Field(..., description="Request success status")
+    documents: List[Dict[str, Any]] = Field(..., description="List of documents")
+    total_count: int = Field(..., description="Total number of documents")
+
+
+class DocumentDeleteResponse(BaseModel):
+    """Document deletion response model."""
+    success: bool = Field(..., description="Deletion success status")
+    message: str = Field(..., description="Response message")
+    file_name: Optional[str] = Field(None, description="Deleted file name")
 
 
 # WebSocket Models
@@ -550,16 +576,201 @@ async def api_info():
 async def get_models():
     """Get available models for the frontend."""
     # For now, return a mock list of models
-    # In a full implementation, this would query the available GGUF models
     return [
-        {"name": "llama-3.2-1b-instruct", "size": "771MB"},
-        {"name": "qwen2.5-1.5b-instruct", "size": "1.04GB"},
-        {"name": "smolLM2-1.7b-instruct", "size": "1.01GB"},
-        {"name": "phi-4-mini-instruct", "size": "2.32GB"},
-        {"name": "gemma-3-4b-it", "size": "2.37GB"},
+        {"name": "llama-3.2-1b", "size": "771MB"},
+        {"name": "qwen2.5-1.5b", "size": "1.04GB"},
+        {"name": "qwen2.5-coder-1.5b", "size": "778MB"},
+        {"name": "smolLM2-1.7b", "size": "1.01GB"},
+        {"name": "phi-4-mini", "size": "2.38GB"},
+        {"name": "gemma-3-4b", "size": "2.37GB"},
         {"name": "qwen3-4b", "size": "2.38GB"},
         {"name": "deepseek-r1-distill-qwen-14b", "size": "1.11GB"}
     ]
+
+
+# Document Management Endpoints
+@app.post("/api/documents/upload", response_model=DocumentUploadResponse)
+async def upload_document(
+    file: UploadFile = File(...),
+    api_key: Optional[str] = Depends(verify_api_key)
+):
+    """Upload and process a document for RAG indexing."""
+    try:
+        # Validate file type
+        allowed_extensions = {'.pdf', '.docx', '.txt', '.md', '.py', '.js', '.html', '.css', '.json', '.xml', '.yaml', '.yml'}
+        file_extension = Path(file.filename).suffix.lower()
+
+        if file_extension not in allowed_extensions:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unsupported file type: {file_extension}. Supported types: {', '.join(allowed_extensions)}"
+            )
+
+        # Create uploads directory if it doesn't exist
+        uploads_dir = Path("uploads")
+        uploads_dir.mkdir(exist_ok=True)
+
+        # Save uploaded file
+        file_path = uploads_dir / file.filename
+
+        async with aiofiles.open(file_path, 'wb') as f:
+            content = await file.read()
+            await f.write(content)
+
+        logger.info("File uploaded", file_name=file.filename, file_size=len(content))
+
+        # Get RAG engine service
+        rag_engine = get_service("rag_engine")
+        if not rag_engine or not rag_engine.initialized:
+            raise HTTPException(status_code=503, detail="RAG engine not available")
+
+        # Process document
+        result = await rag_engine.add_document(str(file_path))
+
+        if result["success"]:
+            return DocumentUploadResponse(
+                success=True,
+                message="Document uploaded and indexed successfully",
+                file_name=file.filename,
+                chunks_added=result["chunks_added"],
+                processing_time=result["processing_time"],
+                content_hash=result["content_hash"]
+            )
+        else:
+            # Clean up failed upload
+            if file_path.exists():
+                file_path.unlink()
+
+            return DocumentUploadResponse(
+                success=False,
+                message=result["error"],
+                file_name=file.filename
+            )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Document upload failed", file_name=file.filename, error=str(e))
+        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
+
+
+@app.get("/api/documents", response_model=DocumentListResponse)
+async def get_documents(api_key: Optional[str] = Depends(verify_api_key)):
+    """Get list of all indexed documents."""
+    try:
+        rag_engine = get_service("rag_engine")
+        if not rag_engine or not rag_engine.initialized:
+            raise HTTPException(status_code=503, detail="RAG engine not available")
+
+        documents = await rag_engine.get_document_list()
+
+        return DocumentListResponse(
+            success=True,
+            documents=documents,
+            total_count=len(documents)
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Failed to get document list", error=str(e))
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve documents: {str(e)}")
+
+
+@app.delete("/api/documents/{file_name}", response_model=DocumentDeleteResponse)
+async def delete_document(
+    file_name: str,
+    api_key: Optional[str] = Depends(verify_api_key)
+):
+    """Delete a document from the RAG system."""
+    try:
+        rag_engine = get_service("rag_engine")
+        if not rag_engine or not rag_engine.initialized:
+            raise HTTPException(status_code=503, detail="RAG engine not available")
+
+        # Find the file in uploads directory
+        uploads_dir = Path("uploads")
+        file_path = uploads_dir / file_name
+
+        if not file_path.exists():
+            raise HTTPException(status_code=404, detail="Document not found")
+
+        # Delete from RAG engine
+        result = await rag_engine.delete_document(str(file_path))
+
+        if result["success"]:
+            # Remove actual file
+            if file_path.exists():
+                file_path.unlink()
+
+            return DocumentDeleteResponse(
+                success=True,
+                message="Document deleted successfully",
+                file_name=file_name
+            )
+        else:
+            return DocumentDeleteResponse(
+                success=False,
+                message=result["error"],
+                file_name=file_name
+            )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Document deletion failed", file_name=file_name, error=str(e))
+        raise HTTPException(status_code=500, detail=f"Deletion failed: {str(e)}")
+
+
+@app.get("/api/documents/stats")
+async def get_document_stats(api_key: Optional[str] = Depends(verify_api_key)):
+    """Get RAG system statistics."""
+    try:
+        rag_engine = get_service("rag_engine")
+        if not rag_engine or not rag_engine.initialized:
+            raise HTTPException(status_code=503, detail="RAG engine not available")
+
+        stats = await rag_engine.get_stats()
+        return stats
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Failed to get document stats", error=str(e))
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve stats: {str(e)}")
+
+
+@app.post("/api/documents/search")
+async def search_documents(
+    request: dict = {"query": "", "top_k": 5},
+    api_key: Optional[str] = Depends(verify_api_key)
+):
+    """Search for documents using RAG."""
+    try:
+        query = request.get("query", "")
+        top_k = request.get("top_k", 5)
+
+        if not query:
+            raise HTTPException(status_code=400, detail="Query parameter is required")
+
+        rag_engine = get_service("rag_engine")
+        if not rag_engine or not rag_engine.initialized:
+            raise HTTPException(status_code=503, detail="RAG engine not available")
+
+        results = await rag_engine.search(query, top_k)
+
+        return {
+            "success": True,
+            "query": query,
+            "results": results,
+            "total_results": len(results)
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Document search failed", query=request.get("query", ""), error=str(e))
+        raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
 
 
 # Error handlers

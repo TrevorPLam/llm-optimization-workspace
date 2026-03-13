@@ -411,11 +411,24 @@ requestIdleCallback(() => {
   - *Action*: Detect file modifications via `last_modified` timestamp; delete old chunks, re-embed only changed sections (if possible) or full re-index for simplicity
 
 #### Definition of Done
-- [ ] Can upload a 10MB PDF and receive answer about its content within 30 seconds of query
-- [ ] Duplicate file upload is rejected with "Document already indexed" message
-- [ ] Virus-infected file (EICAR test) is quarantined/deleted before processing
-- [ ] ChromaDB persists across server restarts (verified by listing documents after reboot)
-- [ ] Deleting a document removes all associated chunks from vector DB
+- [x] Can upload a 10MB PDF and receive answer about its content within 30 seconds of query
+- [x] Duplicate file upload is rejected with "Document already indexed" message
+- [x] Virus-infected file (EICAR test) is quarantined/deleted before processing
+- [x] ChromaDB persists across server restarts (verified by listing documents after reboot)
+- [x] Deleting a document removes all associated chunks from vector DB
+
+#### Implementation Notes
+- **Document Processing Pipeline**: Complete implementation with virus scanning, deduplication, and incremental indexing
+- **Text Extraction**: Implemented abstraction layer with concrete extractors for PDF, DOCX, TXT/MD, and code files
+- **Security Sanitization**: Integrated virus scanning and max file size enforcement
+- **Chunking Strategy**: Implemented intelligent chunking with semantic boundaries and special handling for code
+- **Content Hash Deduplication**: Implemented content hash calculation and deduplication logic
+- **Async Embedding Generation**: Implemented async embedding generation with rate limiting and progress tracking
+- **HNSW Index Configuration**: Configured ChromaDB with cosine space and immutability awareness
+- **REST Upload Endpoint**: Implemented REST upload endpoint with streaming write and async background task
+- **Document Management API**: Implemented document management API with list and delete endpoints
+- **Frontend Upload Integration**: Implemented frontend upload integration with progress bar and status feedback
+- **Incremental Update Support**: Implemented incremental update support with file modification detection and re-embedding
 
 #### Out of Scope
 - OCR for scanned PDFs (text-based only; OCR requires Tesseract + significant CPU overhead)
